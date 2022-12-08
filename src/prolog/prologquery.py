@@ -178,15 +178,6 @@ class PrologQuery():
         for i,dicionario in enumerate(self.prolog.query("print_cave.")):
             return dicionario
         
-    def get_relative_map(self, x: int, y: int) -> str:
-        for element in ['small_enemy', 'large_enemy', 'pit', 'teleporter', 'gold', 'power_up', ]
-        query = f'world_position(Element, ({x}, {y})).'
-        res = self.get_first_result(query)
-        element = res['Element']
-        if element is None:
-            return '.'
-        return element
-        
     
 
 if __name__ == "__main__":
