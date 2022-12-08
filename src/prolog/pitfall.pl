@@ -19,6 +19,9 @@
     sense/1,
     learn/3,
     act/1,
+    facing/1,
+    set_agent_position/1,
+    set_agent_facing/1,
     sense_learn_act/2,
     print_cave/0,
     disable_logging/0,
@@ -65,7 +68,7 @@ assert_new(Term) :-
     !.
 assert_new(_).
 
-agent_position((1,1)).
+agent_position((1,1)). % TODO: no longer fixed
 
 collected(gold, 0).
 collected(power_up, 0).
@@ -74,7 +77,19 @@ collected(power_up, 0).
 % World information
 % -----------------
 
-facing(east).
+set_agent_position((X,Y)) :-
+    retractall(agent_position(_)),
+    assertz(agent_position((X,Y))),
+    retractall(world_position(agent, _)),
+    assertz(world_position(agent, (X,Y))),
+    !.
+
+set_agent_facing(Dir) :-
+    retractall(facing(_)),
+    assertz(facing(Dir)),
+    !.
+
+facing(east). % TODO: no longer fixed
 
 dir(north).
 dir(east).
@@ -97,8 +112,8 @@ adjacent((X1, Y), (X2, Y), west) :-
 adjacent((X1, Y), (X2, Y), east) :-
     X2 is X1 + 1.
 
-minX(1). maxX(12).
-minY(1). maxY(12).
+minX(1). maxX(59).
+minY(1). maxY(34).
 
 % valid_position/1
 % valid_position(+Pos)
@@ -634,84 +649,12 @@ act(Action) :-
 % 5. Impact (when walking into a wall)
 % 6. Scream (when an enemy dies)
 
-% sense_environment/1
-% sense_environment(-Sensors)
-% Sensing should use absolute world knowledge because it does not depend on
-% where the agent thinks it is, but on where it actually is
-sense_environment(Sensors) :-
-    Sensors = (Steps, Breeze, Flash, Glow, Impact, Scream),
-    sense_steps(Steps),
-    sense_breeze(Breeze),
-    sense_flash(Flash),
-    sense_glow(Glow),
-    sense_impact(Impact),
-    sense_scream(Scream),
-    !.
-
 write_sensors(Sensors) :-
     agent_position(AP),
     world_position(agent, ActualAP),
     facing(Dir),
     log('Agent~n~t~2|at: ~w~n~t~2|sensing: ~w~nWorld~n~t~2|agent at: ~w~n~t~2|facing: ~w~n', [AP, Sensors, ActualAP, Dir]),
     !.
-
-% sense_steps/1
-% sense_steps(-Steps)
-% steps if large or small enemy in adjacent cell
-sense_steps(steps) :-
-    world_position(agent, AP),
-    (
-        world_position(small_enemy, SEP),
-        adjacent(AP, SEP, _),
-        valid_position(SEP)
-    ;
-        world_position(large_enemy, LEP),
-        adjacent(AP, LEP, _),
-        valid_position(LEP)
-    ).
-sense_steps(no_steps).
-
-% sense_breeze/1
-% sense_breeze(-Breeze)
-% breeze if pit in adjacent cell
-sense_breeze(breeze) :-
-    world_position(agent, AP),
-    world_position(pit, PP),
-    adjacent(AP, PP, _),
-    valid_position(PP).
-sense_breeze(no_breeze).
-
-% sense_flash/1
-% sense_flash(-Flash)
-% flash if teleporter in adjacent cell
-sense_flash(flash) :-
-    world_position(agent, AP),
-    world_position(teleporter, TP),
-    adjacent(AP, TP, _),
-    valid_position(TP).
-sense_flash(no_flash).
-
-% sense_glow/1
-% sense_glow(-Glow)
-% glow if gold in agents cell
-sense_glow(glow) :-
-    world_position(agent, AP),
-    world_position(gold, AP).
-sense_glow(no_glow).
-
-% sense_impact/1
-% sense_impact(-Impact)
-% impact if hit wall in previous step
-sense_impact(impact) :-
-    hit_wall.
-sense_impact(no_impact).
-
-% sense_scream/1
-% sense_scream(-Scream)
-% scream if killed enemy in previous step
-sense_scream(scream) :-
-    killed_enemy.
-sense_scream(no_scream).
 
 
 % For testing only

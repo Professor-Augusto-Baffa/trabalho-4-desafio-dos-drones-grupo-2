@@ -21,12 +21,14 @@ __email__ = "abaffa@inf.puc-rio.br"
 import random
 from Map.Position import Position
 import typing
+import prolog.prologquery as ai
 
 # <summary>
 # Game AI Example
 # </summary>
 class GameAI():
 
+    brain = ai.PrologQuery()
     player = Position()
     state = "ready"
     dir = "north"
@@ -44,7 +46,11 @@ class GameAI():
     # <param name="energy">player energy</param>
     def SetStatus(self, x: int, y: int, dir: str, state: str, score: int, energy: int):
         print(f'Got status x: {x}, y: {y}, dir: {dir}, state:{state}, score: {score}, energy: {energy}')
-    
+        # TODO: send info to prolog when needed
+        self.brain.set_position(x, y)
+        self.brain.set_facing(dir)
+        self.brain.set_energy(energy)
+        self.brain.set_score(score)
         self.player.x = x
         self.player.y = y
         self.dir = dir.lower()
@@ -59,6 +65,7 @@ class GameAI():
     # </summary>
     # <returns>List of observable adjacent positions</returns>
     def GetObservableAdjacentPositions(self) -> typing.List[Position]:
+        # TODO: get adjacent positions from prolog
         ret: typing.List[Position] = []
 
         ret.append(Position(self.player.x - 1, self.player.y))
@@ -106,6 +113,8 @@ class GameAI():
     # <param name="x">x position</param>
     # <param name="y">y position</param>
     def SetPlayerPosition(self, x, y):
+        # TODO: update prolog if needed
+        self.brain.set_position(x, y)
         self.player.x = x
         self.player.y = y
 
@@ -117,6 +126,7 @@ class GameAI():
     # <param name="o">list of observations</param>
     def GetObservations(self, o: typing.List[str]):
         print('Got observations: ', o)
+        # TODO: send observations to prolog
 
         #cmd = "";
         for s in o:
@@ -150,6 +160,7 @@ class GameAI():
     # No observations received
     # </summary>
     def GetObservationsClean(self):
+        #TODO: send observations to prolog
         print('Got observations:', '[]')
     
 
@@ -158,6 +169,7 @@ class GameAI():
     # </summary>
     # <returns>command string to new decision</returns>
     def GetDecision(self):
+        # TODO: get action from prolog
 
         n = random.randint(0,7)
         

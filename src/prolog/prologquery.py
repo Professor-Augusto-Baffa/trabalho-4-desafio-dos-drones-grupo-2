@@ -125,6 +125,22 @@ class PrologQuery():
         query = f'act({action})'
         _ = self.get_first_result(query)
     
+    def set_facing(self, dir: typing.Literal['north', 'south', 'east', 'west']):
+        query = f'set_agent_facing({dir})'
+        _ = self.get_first_result(query)
+
+    def set_position(self, x: int, y: int):
+        query = f'set_agent_position(({x, y}))'
+        _ = self.get_first_result(query)
+
+    def set_energy(self, energy: int):
+        # TODO
+        pass
+
+    def set_score(self, score: int):
+        # TODO
+        pass
+    
     def get_health(self) -> int:
         query = 'get_agent_health(Health)'
         result = self.get_first_result(query)
@@ -183,4 +199,7 @@ class PrologQuery():
 if __name__ == "__main__":
     prolog = PrologQuery()
     # prolog.turn_clockwise()
-    prolog.get_health()
+    print(prolog.faz_query('agent_position((X,Y))'))
+    prolog.set_position(5, 5)
+    print(prolog.faz_query('agent_position((X,Y))'))
+    
