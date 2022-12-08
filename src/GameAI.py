@@ -20,6 +20,7 @@ __email__ = "abaffa@inf.puc-rio.br"
 
 import random
 from Map.Position import Position
+import typing
 
 # <summary>
 # Game AI Example
@@ -41,7 +42,7 @@ class GameAI():
     # <param name="state">player state</param>
     # <param name="score">player score</param>
     # <param name="energy">player energy</param>
-    def SetStatus(self, x, y, dir, state, score, energy):
+    def SetStatus(self, x: int, y: int, dir: str, state: str, score: int, energy: int):
         print(f'Got status x: {x}, y: {y}, dir: {dir}, state:{state}, score: {score}, energy: {energy}')
     
         self.player.x = x
@@ -57,35 +58,13 @@ class GameAI():
     # Get list of observable adjacent positions
     # </summary>
     # <returns>List of observable adjacent positions</returns>
-    def GetObservableAdjacentPositions(self):
-        ret = []
+    def GetObservableAdjacentPositions(self) -> typing.List[Position]:
+        ret: typing.List[Position] = []
 
         ret.append(Position(self.player.x - 1, self.player.y))
         ret.append(Position(self.player.x + 1, self.player.y))
         ret.append(Position(self.player.x, self.player.y - 1))
         ret.append(Position(self.player.x, self.player.y + 1))
-
-        return ret
-
-
-    # <summary>
-    # Get list of all adjacent positions (including diagonal)
-    # </summary>
-    # <returns>List of all adjacent positions (including diagonal)</returns>
-    def GetAllAdjacentPositions(self):
-    
-        ret = []
-
-        ret.Add(Position(self.player.x - 1, self.player.y - 1))
-        ret.Add(Position(self.player.x, self.player.y - 1))
-        ret.Add(Position(self.player.x + 1, self.player.y - 1))
-
-        ret.Add(Position(self.player.x - 1, self.player.y))
-        ret.Add(Position(self.player.x + 1, self.player.y))
-
-        ret.Add(Position(self.player.x - 1, self.player.y + 1))
-        ret.Add(Position(self.player.x, self.player.y + 1))
-        ret.Add(Position(self.player.x + 1, self.player.y + 1))
 
         return ret
     
@@ -94,9 +73,9 @@ class GameAI():
     # Get next forward position
     # </summary>
     # <returns>next forward position</returns>
-    def NextPosition(self):
+    def NextPosition(self) -> typing.Optional[Position]:
     
-        ret = None
+        ret: typing.Optional[Position] = None
         
         if self.dir == "north":
             ret = Position(self.player.x, self.player.y - 1)
@@ -136,7 +115,7 @@ class GameAI():
     # Observations received
     # </summary>
     # <param name="o">list of observations</param>
-    def GetObservations(self, o):
+    def GetObservations(self, o: typing.List[str]):
         print('Got observations: ', o)
 
         #cmd = "";

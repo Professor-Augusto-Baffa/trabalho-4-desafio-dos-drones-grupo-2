@@ -18,6 +18,8 @@ __version__ = "1.0.0"
 __email__ = "abaffa@inf.puc-rio.br"
 #############################################################
 
+import typing
+
 # <summary>
 # Score Board Class
 # </summary>
@@ -57,7 +59,7 @@ class ScoreBoard():
     # <param name="score">Player score</param>
     # <param name="energy">Player energy</param>
     # <param name="color">Player color</param>
-    def __init__(self, name, connected, score, energy, color):
+    def __init__(self, name: str, connected: bool, score: int, energy: int, color: typing.Tuple[int, int, int]):
         self.name = name
         self.connected = connected
         self.score = score

@@ -18,7 +18,8 @@ __version__ = "1.0.0"
 __email__ = "abaffa@inf.puc-rio.br"
 #############################################################
 
-from enum import Enum 
+from enum import Enum
+import typing
 
 '''Player Direction Type'''
 class Direction(Enum):
@@ -59,11 +60,11 @@ class PlayerInfo():
     # <param name="dir">Player direction (north, southk, east or west)</param>
     # <param name="state">Player state (ready, game, dead or gameover)</param>
     # <param name="color">Player color (R, G, B)</param>
-    def __init__(self, node, name, x, y, dir, state, color):
+    def __init__(self, node: int, name: str, x: int, y: int, dir: int, state: int, color: typing.Tuple[int, int, int]):
         self.node = node
         self.name = name
         self.x = x
         self.y = y
-        self.dir = dir
-        self.state = state
+        self.dir: Direction = dir
+        self.state: State = state
         self.color = color

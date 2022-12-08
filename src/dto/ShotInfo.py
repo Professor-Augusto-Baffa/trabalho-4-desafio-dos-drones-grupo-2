@@ -19,6 +19,7 @@ __email__ = "abaffa@inf.puc-rio.br"
 #############################################################
 
 from PlayerInfo import Direction
+import typing
 
 # <summary>
 # Shot Information
@@ -47,7 +48,7 @@ class ShotInfo():
     # <param name="y">Shot position y</param>
     # <param name="dir">Shot direction (north,south, east or west)</param>
     # <param name="color">Shot color (R, G, B)</param>
-    def __init__(self, x, y, dir, color):
+    def __init__(self, x: int, y: int, dir: Direction, color: typing.Tuple[int, int, int]):
         self.x = x
         self.y = y
         self.dir = dir

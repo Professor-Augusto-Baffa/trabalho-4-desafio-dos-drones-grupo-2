@@ -25,6 +25,7 @@ from Socket.HandleClient import HandleClient
 from dto.PlayerInfo import PlayerInfo
 from dto.ScoreBoard import ScoreBoard
 import datetime
+import typing
 
 # <summary>
 # Bot Class
@@ -34,22 +35,21 @@ class Bot():
     name = "BOT_NAME" # BOT NAME
     host = "atari.icad.puc-rio.br" # SERVER
 
-    client = None
-    gameAi = None
-    timer1 = None
+    client: typing.Optional[HandleClient] = None
+    gameAi: typing.Optional[GameAI] = None
+    timer1: typing.Optional[Timer] = None
     
     running = True
     thread_interval = 1 # USE BETWEEN 0.1 and 1 (0.1 real setting, 1 debug settings and makes the bot slower)
 
-    playerList = {} #new Dictionary<long, PlayerInfo>
-    shotList = [] #new List<ShotInfo>
-    scoreList = [] #List<ScoreBoard>
+    playerList: typing.Dict[int, PlayerInfo] = {} #new Dictionary<long, PlayerInfo>
+    scoreList: typing.List[ScoreBoard] = [] #List<ScoreBoard>
     time = 0
 
     gameStatus = ""
     sscoreList = ""
 
-    msg = []
+    msg: typing.List[str] = []
     msgSeconds = 0
 
     # <summary>
@@ -70,7 +70,7 @@ class Bot():
         self.timer1.start()
 
     
-    def convertFromString(self, c):
+    def convertFromString(self, c: str):
 
         c = c.replace('[','')
         c = c.replace(']','')
@@ -88,7 +88,7 @@ class Bot():
     # </summary>
     # <param name="sender">Sender object</param>
     # <param name="args">Event arguments</param>
-    def ReceiveCommand(self, cmd):
+    def ReceiveCommand(self, cmd: str):
 
         if len(cmd) == 0:
             return
@@ -105,7 +105,7 @@ class Bot():
                     self.gameAi.GetObservationsClean()
                     return
                 
-                o = []
+                o: typing.List[str] = []
 
                 if cmd[1].find(",") > -1:
                     os = cmd[1].split(',')
@@ -256,8 +256,7 @@ class Bot():
             elif cmd[0] == "h":
                 if len(cmd) <= 1:
                     return
-                o = []
-                o.append("hit")
+                o = ["hit"]
                 self.gameAi.GetObservations(o)
                 self.msg.append("you hit " + cmd[1])                    
                 
@@ -266,8 +265,7 @@ class Bot():
             elif cmd[0] == "d":
                 if len(cmd) <= 1:
                     return
-                o = []
-                o.append("damage")
+                o = ["damage"]
                 self.gameAi.GetObservations(o)
                 self.msg.append(cmd[1] + " hit you")                    
                 
@@ -283,7 +281,7 @@ class Bot():
     # send a message to other users
     # </summary>
     # <param name="msg">message string</param>
-    def sendMsg(self, msg):
+    def sendMsg(self, msg: str):
         if len(msg.strip()) > 0:
             self.client.sendSay(msg)
 

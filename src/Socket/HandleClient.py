@@ -23,6 +23,11 @@ import sys
 #from multiprocessing import Process
 import threading
 import time
+import typing
+
+CommandHandler = typing.Callable[[str], None]
+StatusChangeHandler = typing.Callable[[], None]
+
 
 # <summary>
 # TCP Client Class
@@ -34,13 +39,13 @@ class HandleClient():
     # Command Event Handler
     # </summary>
     #public static event EventHandler CommandEvent;
-    __cmd_event_handlers = []
+    __cmd_event_handlers: typing.List[CommandHandler] = []
 
     # <summary>
     # Status Change Event Handler
     # </summary>
     #public static event EventHandler ChangeStatusEvent;
-    __chg_event_handlers = []
+    __chg_event_handlers: typing.List[StatusChangeHandler] = []
 
     # <summary>
     # Is Client Connected?
@@ -60,10 +65,10 @@ class HandleClient():
     def __init__(self): 
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    def append_cmd_handler(self, cmd_handler):
+    def append_cmd_handler(self, cmd_handler: CommandHandler):
         HandleClient.__cmd_event_handlers.append(cmd_handler)
 
-    def append_chg_handler(self, chg_handler):
+    def append_chg_handler(self, chg_handler: StatusChangeHandler):
         HandleClient.__chg_event_handlers.append(chg_handler)
 
 
@@ -71,7 +76,7 @@ class HandleClient():
     # Connects socket to a url or ip address
     # </summary>
     # <param name="s">url or ip address</param>
-    def connect(self, s):
+    def connect(self, s: str):
     
         if not self.connected:
         
@@ -178,7 +183,7 @@ class HandleClient():
     # Change player name
     # </summary>
     # <param name="name">new name</param>
-    def sendName(self, name):
+    def sendName(self, name: str):
         self.sendMsg("name;" + name)
     
 
@@ -186,7 +191,7 @@ class HandleClient():
     # Send a message to all players
     # </summary>
     # <param name="msg">text of the message</param>
-    def sendSay(self, msg):
+    def sendSay(self, msg: str):
         self.sendMsg("say;" + msg)
 
     # <summary>
@@ -195,21 +200,21 @@ class HandleClient():
     # <param name="r">Red color 0-255</param>
     # <param name="g">Green color 0-255</param>
     # <param name="b">Blue color 0-255</param>
-    def sendRGB(self, r, g, b):
+    def sendRGB(self, r: int, g: int, b: int):
         self.sendColor((r, g, b))
 
     # <summary>
     # Change player color (Color)
     # </summary>
     # <param name="color">Color object</param>
-    def sendColor(self, color):
+    def sendColor(self, color: typing.Tuple[int, int, int]):
         self.sendMsg("color;" + str(color[0]) + ";" + str(color[1]) + ";" + str(color[2]));
 
     # <summary>
     # Send a raw command to the server
     # </summary>
     # <param name="serverResponse">raw command</param>
-    def sendMsg(self, serverResponse):
+    def sendMsg(self, serverResponse: str):
 
         try:
         
@@ -246,7 +251,7 @@ class HandleClient():
             eventhandler()
 
     
-    def processCommand(self, command):
+    def processCommand(self, command: str):
 
         command = command.strip('\0').strip('\r')
         if len(command) > 0:
@@ -274,7 +279,7 @@ class HandleClient():
                 self.KeepAlive()
 
 
-    def ProcessBuffer(self, data):
+    def ProcessBuffer(self, data: str):
         
         index = data.find('\n')
         length = len(data)
