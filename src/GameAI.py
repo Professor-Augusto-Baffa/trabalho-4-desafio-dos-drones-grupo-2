@@ -127,27 +127,29 @@ class GameAI():
     def GetObservations(self, o: typing.List[str]):
         print('Got observations: ', o)
         # TODO: send observations to prolog
+        sensors = ai.Sensors()
 
         #cmd = "";
         for s in o:
         
             if s == "blocked":
-                pass
+                sensors.impact = True
             
             elif s == "steps":
-                pass
+                sensors.steps = True
             
             elif s == "breeze":
-                pass
+                sensors.breeze = True
 
             elif s == "flash":
-                pass
+                sensors.flash = True
 
             elif s == "blueLight":
+                # TODO: power up
                 pass
 
             elif s == "redLight":
-                pass
+                sensors.glow = True
 
             elif s == "greenLight":
                 pass

@@ -34,7 +34,9 @@
     world_position/2,
     agent_position/1,
     get_inventory/2,
-    collected/2
+    collected/2,
+    set_last_observation/1,
+    last_observation/1
 ]).
 
 :- use_module(a_star).
@@ -54,7 +56,8 @@
     game_score/1,
     health/3,
     agent_health/1,
-    inventory/3
+    inventory/3,
+    last_observation/1
 ]).
 
 :- enable_logging.
@@ -87,6 +90,11 @@ set_agent_position((X,Y)) :-
 set_agent_facing(Dir) :-
     retractall(facing(_)),
     assertz(facing(Dir)),
+    !.
+
+set_last_observation((Steps, Breeze, Flash, Glow, Impact, Scream)) :-
+    retractall(last_observation(_)),
+    assertz(last_observation((Steps, Breeze, Flash, Glow, Impact, Scream))),
     !.
 
 facing(east). % TODO: no longer fixed
@@ -501,6 +509,7 @@ use_power_up :-
 
 % receive_effects/0
 receive_effects :-
+% TODO: update all this according to new observation system
     log('Effects:~n'),
     agent_power_up,
     small_enemy_attacks,
@@ -621,10 +630,10 @@ sense_learn_act(Goal, Action) :-
 
 % sense/1
 % sense(-Sensors)
-sense(Sensors) :-
-    receive_effects,
-    sense_environment(Sensors),
-    write_sensors(Sensors).
+sense((Steps, Breeze, Flash, Glow, Impact, Scream)) :-
+    receive_effects, % TODO: check if still makes sense
+    last_observation((Steps, Breeze, Flash, Glow, Impact, Scream)),
+    write_sensors((Steps, Breeze, Flash, Glow, Impact, Scream)).
 
 % learn/3
 % learn(+Sensors, -Goal, -Action)

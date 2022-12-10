@@ -6,8 +6,8 @@ import re
 class Sensors:
     
     def __init__(
-        self, steps: bool, breeze: bool, flash: bool,
-        glow: bool, impact: bool, scream: bool
+        self, steps: bool = False, breeze: bool = False, flash: bool = False,
+        glow: bool = False, impact: bool = False, scream: bool = False
     ) -> None:
         self.steps = steps
         self.breeze = breeze
@@ -98,11 +98,6 @@ class PrologQuery():
         package_dir = os.path.dirname(__file__)
         kb_file = f'{os.path.relpath(package_dir, start=os.curdir)}/pitfall.pl'
         self.prolog.consult(kb_file)
-
-    def faz_query(self, query):
-        for i,action in enumerate(self.prolog.query(query)):
-            #print (i)
-            return action
         
     def sense(self) -> Sensors:
         query = 'sense((Steps, Breeze, Flash, Glow, Impact, Scream))'
@@ -111,6 +106,16 @@ class PrologQuery():
             return Sensors.from_dict(result)
         except:
             raise AgentDeadError
+    
+    def set_observations(self, sensors: Sensors):
+        query = f'set_last_observation({sensors})'
+        _ = self.get_first_result(query)
+    
+    def get_decision(self) -> Action:
+        sensors = self.sense()
+        _, action = self.learn(sensors)
+        return action
+
     
     def learn(self, sensors: Sensors) -> typing.Tuple[Goal, Action]:
         query = f'learn({sensors}, Goal, Action)'
@@ -189,17 +194,13 @@ class PrologQuery():
     def get_first_result(self, query):
         for res in self.prolog.query(query):
             return res
-
-    def olha_mapa(self):
-        for i,dicionario in enumerate(self.prolog.query("print_cave.")):
-            return dicionario
         
     
 
 if __name__ == "__main__":
     prolog = PrologQuery()
-    # prolog.turn_clockwise()
-    print(prolog.faz_query('agent_position((X,Y))'))
-    prolog.set_position(5, 5)
-    print(prolog.faz_query('agent_position((X,Y))'))
+    print(prolog.get_first_result('last_observation(S)'))
+    prolog.set_observations(Sensors(False, False, False, False, False, False))
+    print(prolog.get_first_result('last_observation(S)'))
+    print(prolog.get_decision())
     
