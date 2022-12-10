@@ -8,13 +8,6 @@
 % TODO: Each game round lasts 10 minutes
 % Game ends if agent dies by damage or falls into a pit
 
-% Costs and rewards
-% -----
-% 1. Pick up: +1000
-% 2. Falling in a pit: -1000
-% 3. Getting killed by an enemy: -1000
-% 4. Being attacked by an enemy: -{dammage}
-% 5. Shooting: -10
 
 :- module(pitfall, [
     sense/1,
