@@ -1,11 +1,12 @@
-% Cave size: 12x12
-% Initial position: (1,1)
-% Cave exit: (1,1)
+% TODO: Labyrinth size: 59x34
+% TODO: Initial position: random
 % Agent's initial energy: 100
-% Ammo damage: random between 20 and 50
-% Ammo count: 5
 % Enemies' initial energy: 100
-% Energy filled by ower-ups: 20
+% TODO: Ammo damage: 10
+% TODO: Ammo count: unlimited
+% TODO: Energy filled by ower-ups: 10, 20, 50
+% TODO: Each game round lasts 10 minutes
+% Game ends if agent dies by damage or falls into a pit
 
 % Costs and rewards
 % -----
@@ -130,7 +131,7 @@ valid_position((X, Y)) :-
     minY(MinY), maxY(MaxY), between(MinY, MaxY, Y).
 
 
-% Cave elements
+% TODO: Review cave elements for new map
 % -----
 % 1. 2 two small enemies (damage 20)
 % 2. 2 large enemies (damage 50)
@@ -290,7 +291,7 @@ print_cave_cell(_, _) :-
 % ------
 % Agent's initial energy: 100
 % Enemies' initial energy: 100
-% Energy filled by power-ups: 20
+% TODO: Energy filled by power-ups: 10, 20, 50
 
 % initial_health/2
 % Initializes health for agent and enemies --> all 100 HP
@@ -377,10 +378,12 @@ agent_killed :-
 % Score System: Costs and Rewards
 % ------
 % Assumes game score cannot be negative
-% 1. Pick up: +1000
+% TODO: 1. Pick up: -5+{item cost}: 
+%   - Golden Coins: +1000
+%   - Golden Rings: +500
 % 2. Falling in a pit: -1000
-% 3. Getting killed by an enemy: -1000
-% 4. Being attacked by an enemy: -{dammage}
+% TODO: 3. Getting killed by an enemy: -10
+% TODO: 4. Killing an enemy: +1000
 % 5. Shooting: -10
 % 6. Other Actions (moving, turning, etc): -1
 
@@ -452,8 +455,8 @@ gen_action_score :-
 %
 % Inventory
 % ----
-% Power ups count: 3
-% Ammo count: 5
+% TODO:Power ups count: (?)
+% TODO: Ammo count: unlimited
 
 % initial_inventory/3
 initial_inventory(agent, 5, 3).
@@ -502,10 +505,13 @@ use_power_up :-
 %
 % Attack System
 % ----
+% TODO: Review new enemy attack damage
+% Pelo o que eu entendi são outros agentes: 
+%   "Os inimigos têm 100 pontos de energia inicial. (São outros agentes)""
 % Small Enemy Attack -> -20 HP for agent
 % Big Enemy Attack -> -50 HP for agent
-% Ammo damage: random between 20 and 50
-% Ammo count: 5
+% TODO: Ammo damage: 10
+% TODO: Ammo count: unlimited
 
 % receive_effects/0
 receive_effects :-
@@ -593,7 +599,7 @@ fall_in_pit :-
 fall_in_pit.
 
 % agent_attacks/2
-% Damage is a random number between 20 and 50
+% Damage is 10 points
 %
 % 1. game score -> -10 points
 % 2. ammo -> -1
@@ -654,7 +660,10 @@ act(Action) :-
 % 1. Steps (adjacent cells to damage-inflicting enemies)
 % 2. Breeze (adjacent cells to pits)
 % 3. Flash (adjacent cells to teleporting enemies)
-% 4. Glow (cells where gold is present)
+% 4. TODO: Glow (cells where gold is present)
+%     - redLight  -> treasure
+%     - blueLight -> power up
+%     - weakLight -> unknown
 % 5. Impact (when walking into a wall)
 % 6. Scream (when an enemy dies)
 
@@ -1305,12 +1314,16 @@ unknown(Pos) :-
 %
 % Actions
 % -------
-% 1. Move forward (move_forward)
-% 2. Turn 90 deg clockwise (turn_clockwise)
+% 1.1. Move forward (move_forward)
+% TODO: 1.2. Move backward (move_backward)
+% 2.1. Turn right 90 deg clockwise (turn_clockwise)
+% 2.2. Turn left 90 deg anticlockwise (turn_anticlockwise)
 % 3. Pick up object (gold)
-% 4. Shoot on the current facing direction (deals random damage between 20 and 50
-%    to any enemy in the adjacent celin the direction the agent is facing)
-% 5. Climb out of the cave (only at the start )
+% 4. Shoot on the current facing direction
+%    (to any enemy in the adjacent celin the direction the agent is facing)
+%    TODO: (ammo is unlimited and has range until coliding with blocked position)
+% TODO: 5. Observe information on the world around
+% 5. TODO: Remove? Climb out of the cave (only at the start)
 
 % next_action/2
 % next_action(+Goal, -Action)
