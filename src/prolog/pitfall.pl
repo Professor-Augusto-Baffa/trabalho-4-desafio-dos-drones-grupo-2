@@ -154,11 +154,10 @@ valid_position((X, Y)) :-
 
 world_position(agent, (1, 1)).
 
-world_position(small_enemy, (2, 9)).
-world_position(small_enemy, (10, 2)).
-
-world_position(large_enemy, (5, 6)).
-world_position(large_enemy, (11, 8)).
+world_position(enemy, (2, 9)).
+world_position(enemy, (10, 2)).
+world_position(enemy, (5, 6)).
+world_position(enemy, (11, 8)).
 
 world_position(pit, (2, 11)).
 world_position(pit, (3, 3)).
