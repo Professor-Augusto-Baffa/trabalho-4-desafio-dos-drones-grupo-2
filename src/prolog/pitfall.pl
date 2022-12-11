@@ -350,29 +350,24 @@ get_agent_health(Health) :-
     assertz(agent_health(Health)),
     !.
 
-% update_agent_health/1
+% update_agent_health/2
 % Update agent's health
 % When NewHealth <= 0, agent is killed, game over!
-update_agent_health(NewHealth) :-
+update_agent_health(NewHealth,_) :-
     (NewHealth > 0),
     retractall(agent_health(_)),
     assertz(agent_health(NewHealth)),
     !.
-update_agent_health(_) :-
+update_agent_health(_,Cost) :-
     retractall(agent_health(_)),
     assertz(agent_health(0)),
-    agent_killed,
+    agent_killed(Cost),
     !.
 
-% agent_killed/0
+% agent_killed/1
 % Called when agent's HP reaches zero, game over!
-agent_killed :-
-    killed_by_enemy_score,
-    log('You died! Game over!~n'),
-    fail,
-    !.
-agent_killed :-
-    killed_by_pit_score,
+agent_killed(Cost) :-
+    killed_score(Cost),
     log('You died! Game over!~n'),
     fail.
 
@@ -428,25 +423,18 @@ pick_up_score(Reward) :-
     update_game_score(NewScore),
     !.
 
-% killed_by_enemy/0
-% Killed by enemy -> -10 points
-killed_by_enemy_score :-
+% killed/1
+% Killed by enemy -> Cost = -10 points
+% Killed by pit   -> Cost = -1000 points
+killed_score(Cost) :-
     get_game_score(OldScore),
-    (NewScore is integer(OldScore)-10),
+    (NewScore is integer(OldScore)-integer(Cost)),
     update_game_score(NewScore),
     !.
 
-% killed_by_pit/0
-% Killed by falling into pit -> -1000 points
-killed_by_pit_score :-
-    get_game_score(OldScore),
-    (NewScore is integer(OldScore)-1000),
-    update_game_score(NewScore),
-    !.
-
-% killing_an_enemy/0
+% killing_enemy/0
 % Killing an enemy -> +1000 points
-killing_an_enemy_score :-
+killing_enemy_score :-
     get_game_score(OldScore),
     (NewScore is integer(OldScore)+1000),
     update_game_score(NewScore),
@@ -558,7 +546,7 @@ agent_power_up(PowerUpType) :-
     get_agent_health(OldHealth),
     (NewHealth is integer(OldHealth)+integer(PowerUpType)),
     !,
-    update_agent_health(NewHealth).
+    update_agent_health(NewHealth,_).
 agent_power_up :-
     log('~t~2|No power up available!~n').
 
@@ -576,7 +564,8 @@ enemy_attacks :-
     get_agent_health(OldHealth),
     (NewHealth is integer(OldHealth)-10),
     !,
-    update_agent_health(NewHealth),
+    (Cost is 10),
+    update_agent_health(NewHealth,Cost),
     log('~t~2|Attacked by an enemy!~n').
 enemy_attacks.
 
@@ -603,7 +592,8 @@ fall_in_pit :-
     world_position(agent, AP),
     world_position(pit, AP),
     !,
-    update_agent_health(0).
+    (Cost is 1000),
+    update_agent_health(0,Cost).
 fall_in_pit.
 
 % agent_attacks/2
