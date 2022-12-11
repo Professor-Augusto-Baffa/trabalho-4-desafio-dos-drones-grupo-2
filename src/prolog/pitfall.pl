@@ -2,9 +2,9 @@
 % TODO: Initial position: random
 % Agent's initial energy: 100
 % Enemies' initial energy: 100
-% TODO: Ammo damage: 10
-% TODO: Ammo count: unlimited
-% TODO: Energy filled by ower-ups: 10, 20, 50
+% Ammo damage: 10
+% Ammo count: unlimited
+% Energy filled by ower-ups: 10, 20, 50
 % TODO: Each game round lasts 10 minutes
 % Game ends if agent dies by damage or falls into a pit
 
@@ -364,11 +364,15 @@ update_agent_health(_) :-
     agent_killed,
     !.
 
-% TODO
 % agent_killed/0
 % Called when agent's HP reaches zero, game over!
 agent_killed :-
-    killed_score,
+    killed_by_enemy_score,
+    log('You died! Game over!~n'),
+    fail,
+    !.
+agent_killed :-
+    killed_by_pit_score,
     log('You died! Game over!~n'),
     fail.
 
@@ -414,21 +418,13 @@ update_game_score(NewScore) :-
     !.
 update_game_score(_).
 
-% pick_up_coin/0
-% Pick Up Golden Coin -> -5 cost + 1000 reward
-% New Score = OldScore + 995
-pick_up_coin_score :-
+% pick_up/1
+% Pick Up Golden Coin -> -5 cost + 1000 reward = 995
+% Pick Up Golden Ring -> -5 cost + 500 reward  = 495
+% Pick Up Failed      -> -5 cost + 0 reward    = -5
+pick_up_score(Reward) :-
     get_game_score(OldScore),
-    (NewScore is 995+integer(OldScore)),
-    update_game_score(NewScore),
-    !.
-
-% pick_up_ring/0
-% Pick Up Golden Ring -> -5 cost + 500 reward
-% New Score = OldScore + 495
-pick_up_ring_score :-
-    get_game_score(OldScore),
-    (NewScore is 495+integer(OldScore)),
+    (NewScore is integer(Reward)+integer(OldScore)-5),
     update_game_score(NewScore),
     !.
 
@@ -555,12 +551,12 @@ receive_effects :-
 % Energy filled by power-ups: 10, 20, 50
 % Rule for updating health when agent collects power up
 % Has to match agent's position
-agent_power_up(PowerUpValue) :-
+agent_power_up(PowerUpType) :-
     world_position(agent, AP),
     world_position(power_up, AP),
     %use_power_up,
     get_agent_health(OldHealth),
-    (NewHealth is integer(OldHealth)+integer(PowerUpValue)),
+    (NewHealth is integer(OldHealth)+integer(PowerUpType)),
     !,
     update_agent_health(NewHealth).
 agent_power_up :-
