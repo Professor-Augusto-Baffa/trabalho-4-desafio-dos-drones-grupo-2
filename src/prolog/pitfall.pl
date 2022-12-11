@@ -291,13 +291,12 @@ print_cave_cell(_, _) :-
 % ------
 % Agent's initial energy: 100
 % Enemies' initial energy: 100
-% TODO: Energy filled by power-ups: 10, 20, 50
+% Energy filled by power-ups: 10, 20, 50
 
 % initial_health/2
 % Initializes health for agent and enemies --> all 100 HP
 initial_health(agent, 100).
-initial_health(small_enemy, 100).
-initial_health(large_enemy, 100).
+initial_health(enemy, 100).
 
 % get_health/3
 % Given a character (excluding agent) and their position on the map, get said character's health
@@ -378,12 +377,12 @@ agent_killed :-
 % Score System: Costs and Rewards
 % ------
 % Assumes game score cannot be negative
-% TODO: 1. Pick up: -5+{item cost}: 
+% 1. Pick up: -5+{item cost}: 
 %   - Golden Coins: +1000
 %   - Golden Rings: +500
 % 2. Falling in a pit: -1000
-% TODO: 3. Getting killed by an enemy: -10
-% TODO: 4. Killing an enemy: +1000
+% 3. Getting killed by an enemy: -10
+% 4. Killing an enemy: +1000
 % 5. Shooting: -10
 % 6. Other Actions (moving, turning, etc): -1
 
@@ -415,21 +414,48 @@ update_game_score(NewScore) :-
     !.
 update_game_score(_).
 
-% pick_up/0
-% Pick Up Reward -> +1000 points
-pick_up_score :-
+% pick_up_coin/0
+% Pick Up Golden Coin -> -5 cost + 1000 reward
+% New Score = OldScore + 995
+pick_up_coin_score :-
     get_game_score(OldScore),
-    (NewScore is 1000+integer(OldScore)),
+    (NewScore is 995+integer(OldScore)),
     update_game_score(NewScore),
     !.
 
-% killed/0
-% Killed by enemy -> -1000 points
-killed_score :-
+% pick_up_ring/0
+% Pick Up Golden Ring -> -5 cost + 500 reward
+% New Score = OldScore + 495
+pick_up_ring_score :-
+    get_game_score(OldScore),
+    (NewScore is 495+integer(OldScore)),
+    update_game_score(NewScore),
+    !.
+
+% killed_by_enemy/0
+% Killed by enemy -> -10 points
+killed_by_enemy_score :-
+    get_game_score(OldScore),
+    (NewScore is integer(OldScore)-10),
+    update_game_score(NewScore),
+    !.
+
+% killed_by_pit/0
+% Killed by falling into pit -> -1000 points
+killed_by_pit_score :-
     get_game_score(OldScore),
     (NewScore is integer(OldScore)-1000),
     update_game_score(NewScore),
     !.
+
+% killing_enemy/0
+% Killing an enemy -> +1000 points
+killing_enemy_score :-
+    get_game_score(OldScore),
+    (NewScore is integer(OldScore)+1000),
+    update_game_score(NewScore),
+    !.
+
 
 % attacked/1
 % Attacked by enemy -> -{damage}
