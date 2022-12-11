@@ -337,6 +337,7 @@ character_killed(EnemyType, EnemyPos) :-
     retractall(world_count(CountType, _)),
     assertz(world_count(CountType, NC)),
     assertz(killed_enemy),
+    killing_enemy_score,
     !.
 
 % get_agent_health/1
