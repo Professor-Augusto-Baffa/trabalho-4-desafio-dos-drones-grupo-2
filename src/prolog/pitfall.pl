@@ -110,6 +110,11 @@ clockwise(east, south).
 clockwise(south, west).
 clockwise(west, north).
 
+anticlockwise(north, west).
+anticlockwise(west, south).
+anticlockwise(south, east).
+anticlockwise(east, north).
+
 % adjacent/2
 % adjacent(+Pos, ?NextPos, ?Direction)
 adjacent((X, Y1), (X, Y2), south) :-
