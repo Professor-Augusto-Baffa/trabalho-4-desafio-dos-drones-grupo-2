@@ -448,20 +448,19 @@ killed_by_pit_score :-
     update_game_score(NewScore),
     !.
 
-% killing_enemy/0
+% killing_an_enemy/0
 % Killing an enemy -> +1000 points
-killing_enemy_score :-
+killing_an_enemy_score :-
     get_game_score(OldScore),
     (NewScore is integer(OldScore)+1000),
     update_game_score(NewScore),
     !.
 
-
 % attacked/1
-% Attacked by enemy -> -{damage}
-attacked_score(Damage) :-
+% Attacked by enemy (other agent) -> -10
+attacked_score :-
     get_game_score(OldScore),
-    (NewScore is integer(OldScore)-integer(Damage)),
+    (NewScore is integer(OldScore)-10),
     update_game_score(NewScore),
     !.
 
