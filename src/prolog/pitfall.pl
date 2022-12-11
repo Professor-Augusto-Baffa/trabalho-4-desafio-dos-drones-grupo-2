@@ -1,4 +1,4 @@
-% TODO: Labyrinth size: 59x34
+% Labyrinth size: 59x34
 % TODO: Initial position: random
 % Agent's initial energy: 100
 % Enemies' initial energy: 100
@@ -69,8 +69,11 @@ assert_new(_).
 
 agent_position((1,1)). % TODO: no longer fixed
 
-collected(gold, 0).
-collected(power_up, 0).
+collected(gold_ring, 0).
+collected(gold_coin, 0).
+collected(power_up_10, 0).
+collected(power_up_20, 0).
+collected(power_up_50, 0).
 
 %
 % World information
