@@ -291,7 +291,6 @@ print_cave_cell(_, _) :-
 % ------
 % Agent's initial energy: 100
 % Enemies' initial energy: 100
-% Energy filled by power-ups: 10, 20, 50
 
 % initial_health/2
 % Initializes health for agent and enemies --> all 100 HP
@@ -365,6 +364,7 @@ update_agent_health(_) :-
     agent_killed,
     !.
 
+% TODO
 % agent_killed/0
 % Called when agent's HP reaches zero, game over!
 agent_killed :-
@@ -457,7 +457,7 @@ killing_an_enemy_score :-
     !.
 
 % attacked/1
-% Attacked by enemy (other agent) -> -10
+% Attacked by enemy (other agent) -> -{damage}
 attacked_score :-
     get_game_score(OldScore),
     (NewScore is integer(OldScore)-10),
@@ -536,74 +536,53 @@ use_power_up :-
 %
 % Attack System
 % ----
-% TODO: Review new enemy attack damage
-% Pelo o que eu entendi são outros agentes: 
-%   "Os inimigos têm 100 pontos de energia inicial. (São outros agentes)""
-% Small Enemy Attack -> -20 HP for agent
-% Big Enemy Attack -> -50 HP for agent
-% TODO: Ammo damage: 10
-% TODO: Ammo count: unlimited
+% Attacks are made by other angents
+% Enemy attacks -> -10HP for agent
+% Agent attacks -> -10HP for enemy
+% Ammo count: unlimited
 
 % receive_effects/0
 receive_effects :-
 % TODO: update all this according to new observation system
     log('Effects:~n'),
     agent_power_up,
-    small_enemy_attacks,
-    big_enemy_attacks,
+    enemy_attacks,
     teleport_attack,
     fall_in_pit.
 
 
-% agent_power_up/0
-% Rule for updating health with +20 HP when agent collects power up
-% Only 3 available + has to match agent's position
-agent_power_up :-
+% agent_power_up/1
+% Energy filled by power-ups: 10, 20, 50
+% Rule for updating health when agent collects power up
+% Has to match agent's position
+agent_power_up(PowerUpValue) :-
     world_position(agent, AP),
     world_position(power_up, AP),
-    use_power_up,
+    %use_power_up,
     get_agent_health(OldHealth),
-    (NewHealth is integer(OldHealth)+20),
+    (NewHealth is integer(OldHealth)+integer(PowerUpValue)),
     !,
     update_agent_health(NewHealth).
 agent_power_up :-
     log('~t~2|No power up available!~n').
 
-% small_enemy_attacks/0
-%
-% 1. game score -> -20 points
-% 2. agent health -> -20 points
-small_enemy_attacks :-
-    % If the agent is at an enemy's position
-    world_position(agent, AP),
-    world_position(small_enemy, AP),
-    % Decrease the score
-    attacked_score(20),
-    % Decrease health
-    get_agent_health(OldHealth),
-    (NewHealth is integer(OldHealth)-20),
-    !,
-    update_agent_health(NewHealth),
-    log('~t~2|Attacked by a small enemy!~n').
-small_enemy_attacks.
 
-% big_enemy_attacks/0
+% enemy_attacks/0
 % 
-% 1. game score -> -50 points
-% 2. agent health = -50 points
-big_enemy_attacks :-
+% Agent health = -10 points
+enemy_attacks :-
     % If the agent is at an enemy's position
     world_position(agent, AP),
     world_position(large_enemy, AP),
     % Decrease the score
-    attacked_score(50),
+    % attacked_score,
     % Decrease health
     get_agent_health(OldHealth),
-    (NewHealth is integer(OldHealth)-50),
+    (NewHealth is integer(OldHealth)-10),
     !,
     update_agent_health(NewHealth),
-    log('~t~2|Attacked by a big enemy!~n').
-big_enemy_attacks.
+    log('~t~2|Attacked by an enemy!~n').
+enemy_attacks.
 
 % teleport_attack/0
 % Enemy attacks with teleport
@@ -622,6 +601,8 @@ teleport_attack :-
     !.
 teleport_attack.
 
+% TODO:
+% fall_in_pit/0
 fall_in_pit :-
     world_position(agent, AP),
     world_position(pit, AP),
@@ -633,16 +614,14 @@ fall_in_pit.
 % Damage is 10 points
 %
 % 1. game score -> -10 points
-% 2. ammo -> -1
-% 3. enemy health -> -{damage}
+% 2. enemy health -> -10 points
 agent_attacks(EnemyPos, Enemy) :-
-    get_inventory(Ammo, _),
-    (Ammo > 0), 
-    use_ammo,
+    %get_inventory(Ammo, _),
+    %(Ammo > 0), 
+    %use_ammo,
     shooting_score,
-    random_between(20, 50, Damage),
     get_health(EnemyPos, Enemy, OldHealth),
-    (NewHealth is integer(OldHealth)-integer(Damage)),
+    (NewHealth is integer(OldHealth)-10),
     update_health(EnemyPos, Enemy, NewHealth),
     !.
 agent_attacks(_,_) :-
