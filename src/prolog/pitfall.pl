@@ -203,7 +203,9 @@ print_cave :-
     get_game_score(S),
     get_inventory(A, P),
     NP is 3 - P,
-    collected(gold, G),
+    collected(gold_ring, G1),
+    collected(gold_coin, G2),
+    (G is integer(G1)+integer(G2)),
     log('Health: ~t~w~nScore: ~t~w~nAmmo: ~t~w~nGold: ~t~w~nPower ups: ~t~w~n',
         [H, S, A, G, NP]
     ).
@@ -711,11 +713,23 @@ world_shoot :-
     !.
 
 world_pick_up :-
-    % If on the same position as gold, remove gold from the world
+    % If on the same position as gold coin, remove gold from the world
     world_position(agent, AP),
-    world_position(gold, AP),
-    pick_up_score,
-    retractall(world_position(gold, AP)).
+    world_position(gold_coin, AP),
+    pick_up_score(1000),
+    retractall(world_position(gold_coin, AP)),
+    !.
+world_pick_up :-
+    % If on the same position as gold ring, remove gold from the world
+    world_position(agent, AP),
+    world_position(gold_ring, AP),
+    pick_up_score(500),
+    retractall(world_position(gold_ring, AP)),
+    !.
+world_pick_up :-
+    % Failed to pick up gold
+    world_position(agent, AP),
+    pick_up_score(0).
 
 clear_transient_flags :-
     retractall(hit_wall),
