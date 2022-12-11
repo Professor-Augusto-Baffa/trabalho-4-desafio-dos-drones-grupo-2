@@ -168,24 +168,27 @@ world_position(pit, (10, 6)).
 world_position(pit, (10, 10)).
 world_position(pit, (11, 3)).
 
-world_position(gold, (3, 5)).
-world_position(gold, (9, 11)).
-world_position(gold, (11, 2)).
+world_position(gold_ring, (3, 5)).
+world_position(gold_ring, (9, 11)).
+world_position(gold_coin, (11, 2)).
 
 world_position(teleporter, (1, 7)).
 world_position(teleporter, (4, 11)).
 world_position(teleporter, (7, 3)).
 world_position(teleporter, (10, 1)).
 
-world_position(power_up, (1, 12)).
-world_position(power_up, (2, 2)).
-world_position(power_up, (7, 7)).
+world_position(power_up_10, (1, 12)).
+world_position(power_up_20, (2, 2)).
+world_position(power_up_50, (7, 7)).
 
 world_count(enemy, 4).
 world_count(pit, 8).
-world_count(gold, 3).
+world_count(gold_ring, 2).
+world_count(gold_coin, 1).
 world_count(teleporter, 4).
-world_count(power_up, 3).
+world_count(power_up_10, 1).
+world_count(power_up_20, 1).
+world_count(power_up_50, 1).
 
 % Print cave for debugging
 
