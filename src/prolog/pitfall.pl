@@ -30,7 +30,8 @@
     get_inventory/2,
     collected/2,
     set_last_observation/1,
-    last_observation/1
+    last_observation/1,
+    set_game_score/1
 ]).
 
 :- use_module(a_star).
@@ -51,7 +52,8 @@
     health/3,
     agent_health/1,
     inventory/3,
-    last_observation/1
+    last_observation/1,
+    last_position/1
 ]).
 
 :- enable_logging.
@@ -89,6 +91,11 @@ set_agent_facing(Dir) :-
 set_last_observation((Steps, Breeze, Flash, Glow, Impact, Scream)) :-
     retractall(last_observation(_)),
     assertz(last_observation((Steps, Breeze, Flash, Glow, Impact, Scream))),
+    !.
+
+set_last_position((X, Y)) :-
+    retractall(last_position(_)),
+    assertz(last_position((X, Y))),
     !.
 
 facing(east). % TODO: no longer fixed
@@ -392,6 +399,11 @@ get_game_score(Score) :-
 get_game_score(Score) :-
     initial_game_score(Score),
     assertz(game_score(Score)),
+    !.
+
+set_game_score(NewScore) :-
+    retractall(game_score(_)),
+    assertz(game_score(NewScore)),
     !.
 
 % update_game_score/1
@@ -862,15 +874,10 @@ update_gold(no_glow) :-
 update_impact(no_impact).
 update_impact(impact) :-
     % If impact, a wall was hit on last move, so "go back" to fix the agent_position
-    agent_position(AP),
-    facing(Direction),
-    % Turn twice to get the backwards direction
-    clockwise(Direction, D),
-    clockwise(D, Backwards),
-    adjacent(AP, PrevPos, Backwards),
+    last_position(LP),
     retractall(agent_position(_)),
-    assertz(agent_position(PrevPos)),
-    log('~t~2|agent position: ~w~n', [PrevPos]),
+    assertz(agent_position(LP)),
+    log('~t~2|agent position: ~w~n', [LP]),
     % Learn cave bounds
     learn_cave_bounds.
 
@@ -1164,7 +1171,6 @@ update_goal(NewGoal) :-
 
 % update_goal/2
 % update_goal(+CurrGoal, -NewGoal)
-update_goal(leave, leave).
 update_goal(reach(Pos), NewGoal) :-
     % If the goal is to reach an invalid position, remove goal and get a new one
     \+ maybe_valid_position(Pos),
@@ -1205,12 +1211,6 @@ set_goal(Goal) :-
     retractall(goal(_)),
     assertz(goal(Goal)).
 
-
-ask_goal_KB(leave) :-
-    % If collected all gold, leave the cave
-    world_count(gold, GC),
-    collected(gold, GC),
-    !.
 
 ask_goal_KB(reach(Pos)) :-
     next_position_to_explore(Pos),
@@ -1333,12 +1333,31 @@ next_action(reach(Pos), move_forward) :-
     adjacent(AP, Pos, Dir),
     % move forward
     !.
+next_action(reach(Pos), move_backwards) :-
+    % If goal is to reach a position
+    % and the agent is next to the position and facing the opposite direction
+    agent_position(AP),
+    facing(Dir),
+    adjacent(AP, Pos, Dir),
+    % move backwards
+    !.
 next_action(reach(Pos), turn_clockwise) :-
     % If goal is to reach a position
     % and the agent is next to the position, but facing the wrong direction
     agent_position(AP),
-    adjacent(AP, Pos, _),
+    adjacent(AP, Pos, Dir),
+    facing(FD),
+    clockwise(FD, Dir),
     % turn clockwise
+    !.
+next_action(reach(Pos), turn_clockwise) :-
+    % If goal is to reach a position
+    % and the agent is next to the position, but facing the wrong direction
+    agent_position(AP),
+    adjacent(AP, Pos, Dir),
+    facing(FD),
+    clockwise(Dir, FD),
+    % turn anticlockwise
     !.
 next_action(reach(Pos), Action) :-
     % If goal is to reach a position and the agent is not next to the position
@@ -1346,14 +1365,6 @@ next_action(reach(Pos), Action) :-
     agent_position(AP),
     a_star(AP, Pos, a_star_heuristic, a_star_extend, [Next | _]),
     next_action(reach(Next), Action),
-    !.
-next_action(leave, step_out) :-
-    % If goal is to leave, and the agent is at (1,1), step out of the cave
-    agent_position((1,1)),
-    !.
-next_action(leave, Action) :-
-    % If goal is to leave and the agent is not at (1,1), act to reach (1,1)
-    next_action(reach((1,1)), Action),
     !.
 
 next_action(kill(EnemyPos), shoot) :-
@@ -1384,6 +1395,7 @@ perform_action(move_forward) :-
     facing(Direction),
     agent_position(AP),
     adjacent(AP, NP, Direction),
+    set_last_position(AP),
     retractall(agent_position(_)),
     assertz(agent_position(NP)),
     world_step,

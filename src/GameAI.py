@@ -46,7 +46,6 @@ class GameAI():
     # <param name="energy">player energy</param>
     def SetStatus(self, x: int, y: int, dir: str, state: str, score: int, energy: int):
         print(f'Got status x: {x}, y: {y}, dir: {dir}, state:{state}, score: {score}, energy: {energy}')
-        # TODO: send info to prolog when needed
         self.brain.set_position(x, y)
         self.brain.set_facing(dir)
         self.brain.set_energy(energy)
@@ -58,66 +57,6 @@ class GameAI():
         self.state = state
         self.score = score
         self.energy = energy
-
-
-    # <summary>
-    # Get list of observable adjacent positions
-    # </summary>
-    # <returns>List of observable adjacent positions</returns>
-    def GetObservableAdjacentPositions(self) -> typing.List[Position]:
-        # TODO: get adjacent positions from prolog
-        ret: typing.List[Position] = []
-
-        ret.append(Position(self.player.x - 1, self.player.y))
-        ret.append(Position(self.player.x + 1, self.player.y))
-        ret.append(Position(self.player.x, self.player.y - 1))
-        ret.append(Position(self.player.x, self.player.y + 1))
-
-        return ret
-    
-
-    # <summary>
-    # Get next forward position
-    # </summary>
-    # <returns>next forward position</returns>
-    def NextPosition(self) -> typing.Optional[Position]:
-    
-        ret: typing.Optional[Position] = None
-        
-        if self.dir == "north":
-            ret = Position(self.player.x, self.player.y - 1)
-                
-        elif self.dir == "east":
-                ret = Position(self.player.x + 1, self.player.y)
-                
-        elif self.dir == "south":
-                ret = Position(self.player.x, self.player.y + 1)
-                
-        elif self.dir == "west":
-                ret = Position(self.player.x - 1, self.player.y)
-
-        return ret
-    
-
-    # <summary>
-    # Player position
-    # </summary>
-    # <returns>player position</returns>
-    def GetPlayerPosition(self):
-        return self.player
-
-
-    # <summary>
-    # Set player position
-    # </summary>
-    # <param name="x">x position</param>
-    # <param name="y">y position</param>
-    def SetPlayerPosition(self, x, y):
-        # TODO: update prolog if needed
-        self.brain.set_position(x, y)
-        self.player.x = x
-        self.player.y = y
-
     
 
     # <summary>
@@ -126,10 +65,8 @@ class GameAI():
     # <param name="o">list of observations</param>
     def GetObservations(self, o: typing.List[str]):
         print('Got observations: ', o)
-        # TODO: send observations to prolog
         sensors = ai.Sensors()
 
-        #cmd = "";
         for s in o:
         
             if s == "blocked":
@@ -156,14 +93,16 @@ class GameAI():
 
             elif s == "weakLight":
                 pass
+        self.brain.set_observations(sensors)
 
 
     # <summary>
     # No observations received
     # </summary>
     def GetObservationsClean(self):
-        #TODO: send observations to prolog
         print('Got observations:', '[]')
+        sensors = ai.Sensors()
+        self.brain.set_observations(sensors)
     
 
     # <summary>
@@ -171,27 +110,28 @@ class GameAI():
     # </summary>
     # <returns>command string to new decision</returns>
     def GetDecision(self):
-        # TODO: get action from prolog
 
+        action = self.brain.get_decision()
         n = random.randint(0,7)
         
-
-        if n == 0:
-            return "virar_direita"
-        elif n == 1:
-            return "virar_esquerda"
-        elif n == 2:
-            return "andar"
-        elif n == 3:
-            return "atacar"
-        elif n == 4:
+        if action.action == 'pick_up':
             return "pegar_ouro"
-        elif n == 5:
-            return "pegar_anel"
-        elif n == 6:
-            return "pegar_powerup"
-        elif n == 7:
+        elif action.action == 'move_forward':
+            return "andar"
+        elif action.action == 'move_backwards':
             return "andar_re"
+        elif action.action == 'turn_clockwise':
+            return "virar_direita"
+        elif action.action == 'turn_anticlockwise':
+            return "virar_esquerda"
+        elif action.action == 'step_out':
+            pass
+        elif action.action == 'shoot':
+            return "atacar"
+
+        # TODO: Missing actions:
+        # - "pegar_anel"
+        # - "pegar_powerup"
 
         return ""
 

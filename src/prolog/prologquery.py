@@ -139,12 +139,12 @@ class PrologQuery():
         _ = self.get_first_result(query)
 
     def set_energy(self, energy: int):
-        # TODO
-        pass
+        query = f'update_agent_health({energy})'
+        _ = self.get_first_result(query)
 
     def set_score(self, score: int):
-        # TODO
-        pass
+        query = f'set_game_score(({score}))'
+        _ = self.get_first_result(query)
     
     def get_health(self) -> int:
         query = 'get_agent_health(Health)'
