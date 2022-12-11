@@ -485,11 +485,12 @@ gen_action_score :-
 %
 % Inventory
 % ----
-% TODO:Power ups count: (?)
-% TODO: Ammo count: unlimited
+% Tracks ammo and power up usage
+% Power ups count: (?)
+% Ammo count: unlimited
 
 % initial_inventory/3
-initial_inventory(agent, 5, 3).
+initial_inventory(agent, 0, 0).
 
 % get_inventory/2
 % Get agent's inventory
@@ -516,7 +517,7 @@ update_inventory(_,_).
 % Agent uses 1 ammo
 use_ammo :-
     get_inventory(OldAmmo, PowerUps),
-    (NewAmmo is integer(OldAmmo)-1),
+    (NewAmmo is integer(OldAmmo)+1),
     update_inventory(NewAmmo, PowerUps),
     !.
 
@@ -524,7 +525,7 @@ use_ammo :-
 % Agent uses 1 power up
 use_power_up :-
     get_inventory(Ammo, OldPowerUps),
-    (NewPowerUps is integer(OldPowerUps)-1),
+    (NewPowerUps is integer(OldPowerUps)+1),
     update_inventory(Ammo, NewPowerUps),
     world_position(agent, AP),
     retractall(world_position(power_up, AP)),
