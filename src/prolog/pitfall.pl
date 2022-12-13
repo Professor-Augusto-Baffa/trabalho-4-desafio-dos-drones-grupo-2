@@ -165,7 +165,9 @@ world_position(agent, (1, 1)).
 print_cave :-
     minY(MinY), maxY(MaxY),
     between(MinY, MaxY, Y),
-    print_cave_line(Y).
+    print_cave_line(Y),
+    fail.
+print_cave.
 % print_cave :-
 %     get_agent_health(H),
 %     get_game_score(S),
