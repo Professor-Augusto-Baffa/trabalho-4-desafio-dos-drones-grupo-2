@@ -54,7 +54,9 @@
     agent_health/1,
     inventory/3,
     last_observation/1,
-    last_position/1
+    last_position/1,
+    last_action/1,
+    blocked_position/1
 ]).
 
 :- enable_logging.
@@ -100,6 +102,11 @@ set_last_observation((Steps, Breeze, Flash, Glow, Impact, Scream)) :-
 set_last_position((X, Y)) :-
     retractall(last_position(_)),
     assertz(last_position((X, Y))),
+    !.
+
+set_last_action(Action) :-
+    retractall(last_action(_)),
+    assertz(last_action(Action)),
     !.
 
 facing(east). % TODO: no longer fixed
@@ -235,6 +242,10 @@ print_cave_cell(X, Y) :-
     world_position(agent, (X, Y)),
     facing(south),
     log('\033[48;5;35mv\033[0m'),
+    !.
+print_cave_cell(X, Y) :-
+    blocked_position((X, Y)),
+    log('\033[48;5;231m\033[38;5;0mB\033[0m'),
     !.
 print_cave_cell(X, Y) :-
     certain(visited, (X,Y)),
@@ -655,7 +666,8 @@ sense((Steps, Breeze, Flash, Glow, Impact, Scream)) :-
 learn(Sensors, Goal, Action) :-
     update_knowledge(Sensors),
     update_goal(Goal),
-    next_action(Goal, Action).
+    next_action(Goal, Action),
+    set_last_action(Action).
 
 % act/1
 % act(+Action)
@@ -697,6 +709,7 @@ world_step :-
     facing(Direction),
     adjacent(AP, NP, Direction),
     valid_position(NP),
+    \+ blocked_position(NP),
     retractall(world_position(agent, _)),
     assertz(world_position(agent, NP)),
     !.
@@ -728,7 +741,6 @@ world_pick_up :-
     !.
 world_pick_up :-
     % Failed to pick up gold
-    world_position(agent, AP),
     pick_up_score(0).
 
 clear_transient_flags :-
@@ -780,7 +792,8 @@ update_enemies(no_steps) :-
     retractall(certain(enemy, AP)),
     learn(no_enemy, AP),
     adjacent(AP, P, _),
-    maybe_valid_position(P),
+    valid_position(P),
+    \+ blocked_position(P),
     learn(no_enemy, P),
     fail.
 update_enemies(no_steps).
@@ -793,7 +806,8 @@ update_enemies(steps) :-
 update_enemies(steps) :-
     agent_position(AP),
     adjacent(AP, P, _),
-    maybe_valid_position(P),
+    valid_position(P),
+    \+ blocked_position(P),
     \+ certain(no_enemy, P),
     assert_new(possible_position(enemy, P, AP)),
     fail.
@@ -812,7 +826,8 @@ update_pits(no_breeze) :-
     agent_position(AP),
     learn(no_pit, AP),
     adjacent(AP, P, _),
-    maybe_valid_position(P),
+    valid_position(P),
+    \+ blocked_position(P),
     learn(no_pit, P),
     fail.
 update_pits(no_breeze).
@@ -825,7 +840,8 @@ update_pits(breeze) :-
 update_pits(breeze) :-
     agent_position(AP),
     adjacent(AP, P, _),
-    maybe_valid_position(P),
+    valid_position(P),
+    \+ blocked_position(P),
     \+ certain(no_pit, P),
     assert_new(possible_position(pit, P, AP)),
     fail.
@@ -846,7 +862,8 @@ update_teleporter(no_flash) :-
     agent_position(AP),
     assert_new(certain(no_teleporter, AP)),
     adjacent(AP, P, _),
-    maybe_valid_position(P),
+    valid_position(P),
+    \+ blocked_position(P),
     learn(no_teleporter, P),
     fail.
 update_teleporter(no_flash) :- !.
@@ -859,7 +876,8 @@ update_teleporter(flash) :-
 update_teleporter(flash) :-
     agent_position(AP),
     adjacent(AP, P, _),
-    maybe_valid_position(P),
+    valid_position(P),
+    \+ blocked_position(P),
     \+ certain(no_teleporter, P),
     assert_new(possible_position(teleporter, P, AP)),
     fail.
@@ -890,13 +908,24 @@ update_gold(no_glow) :-
 % update_impact(+Impact)
 update_impact(no_impact).
 update_impact(impact) :-
-    % If impact, a wall was hit on last move, so "go back" to fix the agent_position
-    last_position(LP),
-    retractall(agent_position(_)),
-    assertz(agent_position(LP)),
-    log('~t~2|agent position: ~w~n', [LP]),
-    % Learn cave bounds
-    learn_cave_bounds.
+    % If impact, a wall was hit on last move, so mark the position as blocked
+    agent_position(AP),
+    last_action(move_forward),
+    facing(Dir),
+    adjacent(AP, BlockedPos, Dir),
+    learn(blocked, BlockedPos),
+    log('~t~2|blocked position: ~w~n', [BlockedPos]),
+    !.
+update_impact(impact) :-
+    % If impact, a wall was hit on last move, so mark the position as blocked
+    agent_position(AP),
+    last_action(move_backward),
+    facing(Dir),
+    clockwise(Dir, Dir90),
+    clockwise(Dir90, Back),
+    adjacent(AP, BlockedPos, Back),
+    learn(blocked, BlockedPos),
+    log('~t~2|blocked position: ~w~n', [BlockedPos]).
 
 % update_scream/1
 % update_scream(+Scream)
@@ -905,7 +934,8 @@ update_scream(scream) :-
     agent_position(AP),
     facing(Dir),
     adjacent(AP, P, Dir),
-    maybe_valid_position(P),
+    valid_position(P),
+    \+ blocked_position(P),
     learn(killed_enemy, P).
 
 
@@ -945,6 +975,9 @@ learn(safe, P) :-
 learn(safe, P) :-
     assert_new(certain(safe, P)),
     log('~t~2|safe: ~w~n', [P]).
+learn(blocked, P) :-
+    retractall(certain(safe, P)),
+    assert_new(blocked_position(P)).
 learn(killed_enemy, P) :-
     % If killed normal enemy
     certain(enemy, P),
@@ -1095,7 +1128,8 @@ infer_dangerous_positions :-
     % Get valid neighboring cells
     findall(MaybeDangerPos, (
         adjacent(Pos, MaybeDangerPos, _),
-        maybe_valid_position(MaybeDangerPos)
+        valid_position(MaybeDangerPos),
+        \+ blocked_position(MaybeDangerPos)
     ), MaybeDangerPositions),
     % Get the number of cells
     length(MaybeDangerPositions, CellCount),
@@ -1126,51 +1160,6 @@ infer_safe_positions :-
     learn(safe, Pos),
     fail.
 infer_safe_positions.
-
-% maybe_valid_position/1
-% maybe_valid_position(+Pos)
-% Checks if a position is possibly valid, or fails if known to be invalid from learned bounds
-maybe_valid_position((X, Y)) :-
-    maybe_valid_min_x(X),
-    maybe_valid_min_y(Y),
-    maybe_valid_max_x(X),
-    maybe_valid_max_y(Y).
-
-% maybe_valid_min_x/1
-% maybe_valid_min_x(+X)
-maybe_valid_min_x(X) :-
-    % If known to be invalid, fail
-    certain(minX, MinX),
-    X < MinX,
-    !, fail.
-maybe_valid_min_x(_).
-
-% maybe_valid_max_x/1
-% maybe_valid_max_x(+X)
-maybe_valid_max_x(X) :-
-    % If known to be invalid, fail
-    certain(maxX, MaxX),
-    X > MaxX,
-    !, fail.
-maybe_valid_max_x(_).
-
-% maybe_valid_min_y/1
-% maybe_valid_min_y(+Y)
-maybe_valid_min_y(Y) :-
-    % If known to be invalid, fail
-    certain(minY, MinY),
-    Y < MinY,
-    !, fail.
-maybe_valid_min_y(_).
-
-% maybe_valid_max_y/1
-% maybe_valid_max_y(+Y)
-maybe_valid_max_y(Y) :-
-    % If known to be invalid, fail
-    certain(maxY, MaxY),
-    Y > MaxY,
-    !, fail.
-maybe_valid_max_y(_).
     
 
 %
@@ -1190,7 +1179,7 @@ update_goal(NewGoal) :-
 % update_goal(+CurrGoal, -NewGoal)
 update_goal(reach(Pos), NewGoal) :-
     % If the goal is to reach an invalid position, remove goal and get a new one
-    \+ maybe_valid_position(Pos),
+    (\+ valid_position(Pos) ; blocked_position(Pos)),
     retractall(goal(_)),
     update_goal(none, NewGoal).
 update_goal(kill(Pos), NewGoal) :-
@@ -1275,7 +1264,8 @@ next_position_to_explore([Next | QueueTail], Explored, Pos) :-
         Neighbour,
         Dir^(
             adjacent(Next, Neighbour, Dir),
-            maybe_valid_position(Neighbour),
+            valid_position(Neighbour),
+            \+ blocked_position(Neighbour),
             certain(safe, Neighbour),
             \+ member(Neighbour, Explored),
             \+ member(Neighbour, QueueTail)
@@ -1308,7 +1298,8 @@ enemy_in_frontier(EnemyPos, Backwards) :-
     unknown(UnexploredPos).
 
 unknown(Pos) :-
-    maybe_valid_position(Pos),
+    valid_position(Pos),
+    \+ blocked_position(Pos),
     \+certain(visited, Pos),
     \+certain(no_enemy, Pos),
     \+certain(no_teleporter, Pos),
@@ -1371,7 +1362,7 @@ next_action(reach(Pos), turn_anticlockwise) :-
     % If goal is to reach a position
     % and the agent is next to the position, but facing the wrong direction
     agent_position(AP),
-    adjacent(AP, Pos, Dir),
+    adjacent(AP, Pos, _),
     % turn anticlockwise
     !.
 next_action(reach(Pos), Action) :-
@@ -1442,7 +1433,8 @@ a_star_heuristic((X0, Y0), (X1, Y1), H) :-
 
 a_star_extend(Goal, Origin, Next) :-
     adjacent(Origin, Next, _),
-    maybe_valid_position(Next),
+    valid_position(Next),
+    \+ blocked_position(Next),
     (Next = Goal ; certain(safe, Next)).
 
 
@@ -1466,7 +1458,8 @@ frontier_extend(Pos, Dir, Steps, Reacheable) :-
 
 % frontier_extend_(+Pos, +Dir, +Steps, -Reacheable)
 frontier_extend_(Pos, _, 0, R) :-
-    (   maybe_valid_position(Pos)
+    (   valid_position(Pos),
+        \+ blocked_position(Pos)
     ->  R = [Pos]
     ;   R = []
     ), !.
