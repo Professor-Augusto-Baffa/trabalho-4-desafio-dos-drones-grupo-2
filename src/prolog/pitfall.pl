@@ -1,11 +1,9 @@
 % Labyrinth size: 59x34
-% TODO: Initial position: random
 % Agent's initial energy: 100
 % Enemies' initial energy: 100
 % Ammo damage: 10
 % Ammo count: unlimited
-% Energy filled by ower-ups: 10, 20, 50
-% TODO: Each game round lasts 10 minutes
+% Energy filled by power-ups: 10, 20, 50
 % Game ends if agent dies by damage or falls into a pit
 
 
@@ -44,6 +42,8 @@
     agent_position/1,
     facing/1,
     killed_enemy/0,
+    kill_mode_count/1,
+    heard_steps/0,
     goal/1,
     certain/2,
     collected/2,
@@ -68,7 +68,7 @@ assert_new(Term) :-
     !.
 assert_new(_).
 
-agent_position((1,1)). % TODO: no longer fixed
+agent_position((1,1)).
 
 collected(gold_ring, 0).
 collected(gold_coin, 0).
@@ -160,60 +160,23 @@ valid_position((X, Y)) :-
 
 world_position(agent, (1, 1)).
 
-world_position(enemy, (2, 9)).
-world_position(enemy, (10, 2)).
-world_position(enemy, (5, 6)).
-world_position(enemy, (11, 8)).
-
-world_position(pit, (2, 11)).
-world_position(pit, (3, 3)).
-world_position(pit, (4, 8)).
-world_position(pit, (5, 2)).
-world_position(pit, (7, 9)).
-world_position(pit, (10, 6)).
-world_position(pit, (10, 10)).
-world_position(pit, (11, 3)).
-
-world_position(gold_ring, (3, 5)).
-world_position(gold_ring, (9, 11)).
-world_position(gold_coin, (11, 2)).
-
-world_position(teleporter, (1, 7)).
-world_position(teleporter, (4, 11)).
-world_position(teleporter, (7, 3)).
-world_position(teleporter, (10, 1)).
-
-world_position(power_up_10, (1, 12)).
-world_position(power_up_20, (2, 2)).
-world_position(power_up_50, (7, 7)).
-
-world_count(enemy, 4).
-world_count(pit, 8).
-world_count(gold_ring, 2).
-world_count(gold_coin, 1).
-world_count(teleporter, 4).
-world_count(power_up_10, 1).
-world_count(power_up_20, 1).
-world_count(power_up_50, 1).
-
 % Print cave for debugging
 
 print_cave :-
     minY(MinY), maxY(MaxY),
     between(MinY, MaxY, Y),
-    print_cave_line(Y),
-    fail.
-print_cave :-
-    get_agent_health(H),
-    get_game_score(S),
-    get_inventory(A, P),
-    NP is 3 - P,
-    collected(gold_ring, G1),
-    collected(gold_coin, G2),
-    (G is integer(G1)+integer(G2)),
-    log('Health: ~t~w~nScore: ~t~w~nAmmo: ~t~w~nGold: ~t~w~nPower ups: ~t~w~n',
-        [H, S, A, G, NP]
-    ).
+    print_cave_line(Y).
+% print_cave :-
+%     get_agent_health(H),
+%     get_game_score(S),
+    % get_inventory(A, P),
+    % NP is 3 - P,
+    % collected(gold_ring, G1),
+    % collected(gold_coin, G2),
+    % (G is integer(G1)+integer(G2)),
+    % log('Health: ~t~w~nScore: ~t~w~nAmmo: ~t~w~nGold: ~t~w~nPower ups: ~t~w~n',
+    %     [H, S, A, G, NP]
+    % ).
 print_cave_line(Y) :-
     minX(MinX), maxX(MaxX),
     between(MinX, MaxX, X),
@@ -258,10 +221,6 @@ print_cave_cell(X, Y) :-
     log('\033[48;5;238mP\033[0m'),
     !.
 print_cave_cell(X, Y) :-
-    certain(enemy, (X,Y)),
-    log('\033[48;5;208mD\033[0m'),
-    !.
-print_cave_cell(X, Y) :-
     certain(teleporter, (X,Y)),
     log('\033[48;5;26mT\033[0m'),
     !.
@@ -271,22 +230,11 @@ print_cave_cell(X, Y) :-
     !.
 print_cave_cell(X, Y) :-
     possible_position(pit, (X,Y), _),
-    possible_position(enemy, (X,Y), _),
     possible_position(teleporter, (X,Y), _),
     log('+'),
     !.
 print_cave_cell(X, Y) :-
     possible_position(pit, (X,Y), _),
-    possible_position(enemy, (X,Y), _),
-    log('+'),
-    !.
-print_cave_cell(X, Y) :-
-    possible_position(pit, (X,Y), _),
-    possible_position(teleporter, (X,Y), _),
-    log('+'),
-    !.
-print_cave_cell(X, Y) :-
-    possible_position(enemy, (X,Y), _),
     possible_position(teleporter, (X,Y), _),
     log('+'),
     !.
@@ -295,7 +243,9 @@ print_cave_cell(X, Y) :-
     log('\033[48;5;238mp\033[0m'),
     !.
 print_cave_cell(X, Y) :-
-    possible_position(enemy, (X,Y), _),
+    agent_position(AP),
+    adjacent((X,Y), AP, _),
+    heard_steps,
     log('\033[48;5;208md\033[0m'),
     !.
 print_cave_cell(X, Y) :-
@@ -543,6 +493,7 @@ force_update_position(NP) :-
 % update_knowledge(+Sensors)
 update_knowledge(Sensors) :-
     Sensors = (Steps, Breeze, Flash, Glow, Impact, Scream),
+    clear_transient_flags,
     % Update impact first in case the wall was hit in the previous step
     update_impact(Impact),
     update_scream(Scream),
@@ -554,6 +505,10 @@ update_knowledge(Sensors) :-
     infer_dangerous_positions,
     infer_safe_positions.
 
+clear_transient_flags :-
+    retractall(heard_steps),
+    retractall(killed_enemy).
+
 set_visited_cell :-
     agent_position(AP),
     assert_new(certain(visited, AP)),
@@ -562,41 +517,9 @@ set_visited_cell :-
 
 % update_steps/1
 % update_steps(+Steps)
-update_steps(Steps) :-
-    agent_position(AP),
-    % Retract in case the agent killed an enemy that previously generated steps here
-    retractall(certain(steps, AP)),
-    retractall(certain(no_steps, AP)),
-    assertz(certain(Steps, AP)),
-    update_enemies(Steps).
-
-% update_enemies/1
-% update_enemies(+Steps)
-update_enemies(no_steps) :-
-    agent_position(AP),
-    retractall(certain(enemy, AP)),
-    learn(no_enemy, AP),
-    adjacent(AP, P, _),
-    valid_position(P),
-    \+ blocked_position(P),
-    learn(no_enemy, P),
-    fail.
-update_enemies(no_steps).
-
-update_enemies(steps) :-
-    % If already found all enemies
-    world_count(enemy, EC),
-    aggregate_all(count, certain(enemy, _), EC),
-    !.
-update_enemies(steps) :-
-    agent_position(AP),
-    adjacent(AP, P, _),
-    valid_position(P),
-    \+ blocked_position(P),
-    \+ certain(no_enemy, P),
-    assert_new(possible_position(enemy, P, AP)),
-    fail.
-update_enemies(steps).
+update_steps(steps) :-
+    assertz(heard_steps).
+update_steps(no_steps).
 
 % update_breeze/1
 % update_breeze(+Breeze)
@@ -716,39 +639,24 @@ update_impact(impact) :-
 % update_scream(+Scream)
 update_scream(no_scream).
 update_scream(scream) :-
-    agent_position(AP),
-    facing(Dir),
-    adjacent(AP, P, Dir),
-    valid_position(P),
-    \+ blocked_position(P),
-    learn(killed_enemy, P).
+    assertz(killed_enemy).
 
 
 % learn/2
 % learn(+Item, +Location)
-learn(no_enemy, P) :-
-    retractall(possible_position(enemy, P, _)),
-    retractall(certain(enemy, P)),
-    assert_new(certain(no_enemy, P)).
-learn(enemy, P) :-
-    retractall(possible_position(_, P, _)),
-    assert_new(certain(enemy, P)),
-    check_count(enemy).
 learn(no_teleporter, P) :-
     retractall(possible_position(teleporter, P, _)),
     retractall(certain(teleporter, P)),
     assert_new(certain(no_teleporter, P)).
 learn(teleporter, P) :-
     retractall(possible_position(_, P, _)),
-    assert_new(certain(teleporter, P)),
-    check_count(teleporter).
+    assert_new(certain(teleporter, P)).
 learn(no_pit, P) :-
     retractall(possible_position(pit, P, _)),
     assert_new(certain(no_pit, P)).
 learn(pit, P) :-
     retractall(possible_position(_, P, _)),
-    assert_new(certain(pit, P)),
-    check_count(pit).
+    assert_new(certain(pit, P)).
 learn(safe, P) :-
     % Do nothing if already known to be safe
     certain(safe, P),
@@ -763,70 +671,6 @@ learn(safe, P) :-
 learn(blocked, P) :-
     retractall(certain(safe, P)),
     assert_new(blocked_position(P)).
-learn(killed_enemy, P) :-
-    % If killed normal enemy
-    certain(enemy, P),
-    adjacent(P, N, _),
-    % Retract steps observations and mark as not visited, as steps could be
-    % from another enemy
-    retractall(certain(steps, N)),
-    retractall(certain(visited, N)),
-    % Retract possible enemy positions caused by these steps
-    retractall(possible_position(enemy, _, N)),
-    fail.
-learn(killed_enemy, P) :-
-    % If killed teleporter
-    certain(teleporter, P),
-    adjacent(P, N, _),
-    % Retract flash observations and mark as not visited, as flash could be
-    % from another teleporter
-    retractall(certain(flash, N)),
-    retractall(certain(visited, N)),
-    % Retract possible teleporter positions caused by this flash
-    retractall(possible_position(teleporter, _, N)),
-    fail.
-learn(killed_enemy, P) :-
-    retractall(certain(enemy, P)),
-    assertz(certain(no_enemy, P)),
-    retractall(certain(teleporter, P)),
-    assertz(certain(no_teleporter, P)),
-    !.
-
-learn_no_more_enemies :-
-    possible_position(enemy, P, _),
-    learn(no_enemy, P),
-    fail.
-learn_no_more_enemies.
-
-learn_no_more_teleporters :-
-    possible_position(teleporter, P, _),
-    learn(no_teleporter, P),
-    fail.
-learn_no_more_teleporters.
-
-learn_no_more_pits :-
-    possible_position(pit, P, _),
-    learn(no_pit, P),
-    fail.
-learn_no_more_pits.
-
-check_count(enemy) :-
-    world_count(enemy, ExistingEnemiesCount),
-    aggregate_all(count, certain(enemy, _), ExistingEnemiesCount),
-    learn_no_more_enemies.
-check_count(enemy).
-
-check_count(teleporter) :-
-    world_count(teleporter, ExistingTeleporterCount),
-    aggregate_all(count, certain(teleporter, _), ExistingTeleporterCount),
-    learn_no_more_teleporters.
-check_count(teleporter).
-
-check_count(pit) :-
-    world_count(pit, ExistingPitsCount),
-    aggregate_all(count, certain(pit, _), ExistingPitsCount),
-    learn_no_more_pits.
-check_count(pit).
 
 
 % infer_dangerous_positions/0
@@ -837,7 +681,7 @@ check_count(pit).
 infer_dangerous_positions :-
     % For each danger trio (Hint, NotThere, There)
     % e.g. (steps, no_enemy, enemy) or (breeze, no_pit, pit)
-    Dangers = [(steps, no_enemy, enemy), (breeze, no_pit, pit), (flash, no_teleporter, teleporter)],
+    Dangers = [(breeze, no_pit, pit), (flash, no_teleporter, teleporter)],
     member((Hint, NotThere, There), Dangers),
     % For each known Hint (e.g. steps) location
     certain(Hint, Pos),
@@ -871,12 +715,23 @@ infer_dangerous_positions.
 % infer_safe_positions/0
 infer_safe_positions :-
     certain(no_pit, Pos),
-    certain(no_enemy, Pos),
     certain(no_teleporter, Pos),
     learn(safe, Pos),
     fail.
 infer_safe_positions.
-    
+
+
+%
+% Kill mode
+% ---------
+
+kill_mode_limit(20).
+kill_mode_count(0).
+
+reset_kill_mode_count :-
+    retractall(kill_mode_count(_)),
+    assertz(kill_mode_count(0)).
+
 
 %
 % Update goal
@@ -898,15 +753,18 @@ update_goal(reach(Pos), NewGoal) :-
     (\+ valid_position(Pos) ; blocked_position(Pos)),
     retractall(goal(_)),
     update_goal(none, NewGoal).
-update_goal(kill(Pos), NewGoal) :-
+update_goal(kill, NewGoal) :-
     % If the goal is to kill an enemy, and the enemy has been killed, remove goal and get a new one
-    certain(no_enemy, Pos),
-    certain(no_teleporter, Pos),
+    killed_enemy,
+    reset_kill_mode_count,
     retractall(goal(_)),
     update_goal(none, NewGoal).
-update_goal(kill(_), NewGoal) :-
-    % If the goal is to kill an enemy and there is no more ammo left, remove goal and get a new one
-    get_inventory(0, _),
+update_goal(kill, NewGoal) :-
+    % If the goal is to kill an enemy, and the time limit has been reached, remove goal and get a new one
+    kill_mode_limit(L),
+    kill_mode_count(C),
+    C >= L,
+    reset_kill_mode_count,
     retractall(goal(_)),
     update_goal(none, NewGoal).
 update_goal(none, NewGoal) :-
@@ -923,8 +781,12 @@ update_goal(reach(Pos), NewGoal) :-
 update_goal(reach(Pos), reach(Pos)) :-
     % If goal is reach, and haven't reached yet, don't change goal
     !.
-update_goal(kill(Pos), kill(Pos)) :-
-    % If the goal is to kill an enemy that hasn't been killed, keep it
+update_goal(kill, kill) :-
+    % If the goal is to kill an enemy and the time limit hasn't been reached, keep it
+    kill_mode_count(C),
+    CN is C + 1,
+    retractall(kill_mode_count(_)),
+    assertz(kill_mode_count(CN)),
     !.
 
 % set_goal/1
@@ -933,31 +795,11 @@ set_goal(Goal) :-
     retractall(goal(_)),
     assertz(goal(Goal)).
 
+ask_goal_KB(kill) :-
+    heard_steps.
 
 ask_goal_KB(reach(Pos)) :-
     next_position_to_explore(Pos),
-    !.
-
-ask_goal_KB(kill(EnemyPos)) :-
-    % If unable to explore new positions, find an enemy in the frontier and kill it
-    % Check if there is still ammo
-    get_inventory(Ammo, _),
-    Ammo \= 0,
-    bagof(
-        (Count, Distance, OneEnemyPos),
-        AP^(
-            % Get enemy in the known frontier
-            enemy_in_frontier(OneEnemyPos, Dir),
-            % Get the number of cells that will unblock in up to three movements
-            frontier_count(OneEnemyPos, Dir, 3, Count),
-            % Get the distance in case there's two equally good enemy options
-            agent_position(AP),
-            a_star_heuristic(AP, OneEnemyPos, Distance)
-        ),
-        EnemyChoices
-    ),
-    % Sort according to the number of unblocked cells and the distance
-    sort(0, @>, EnemyChoices, [(_, _, EnemyPos) | _]),
     !.
 
 % next_position_to_explore/1
@@ -995,35 +837,14 @@ next_position_to_explore([Failed | QueueTail], Explored, Pos) :-
     !,
     next_position_to_explore(QueueTail, [Failed | Explored], Pos).
 
-% enemy_in_frontier/2
-% enemy_in_frontier(-EnemyPos, -Direction)
-% Returns the position of an enemy that is on the frontier of known cells,
-% meaning that the agents knows nothing about cells "after" the enemy. 
-% Direction is the direction from the EnemyPos to an unknown position.
-enemy_in_frontier(EnemyPos, Backwards) :-
-    % Get a position where there is surely an enemy
-    (certain(enemy, EnemyPos) ; certain(teleporter, EnemyPos)),
-    % With an adjacent safe position
-    adjacent(EnemyPos, SafePos, Dir),
-    certain(safe, SafePos),
-    % And with an opposite side...
-    clockwise(Dir, Perp),
-    clockwise(Perp, Backwards),
-    adjacent(EnemyPos, UnexploredPos, Backwards),
-    % ...that the agent knows nothing about
-    unknown(UnexploredPos).
-
 unknown(Pos) :-
     valid_position(Pos),
     \+ blocked_position(Pos),
     \+certain(visited, Pos),
-    \+certain(no_enemy, Pos),
     \+certain(no_teleporter, Pos),
     \+certain(no_pit, Pos),
-    \+certain(enemy, Pos),
     \+certain(teleporter, Pos),
     \+certain(pit, Pos),
-    \+possible_position(enemy, Pos, _),
     \+possible_position(teleporter, Pos, _),
     \+possible_position(pit, Pos, _),
     !.
@@ -1057,14 +878,6 @@ next_action(reach(Pos), move_forward) :-
     adjacent(AP, Pos, Dir),
     % move forward
     !.
-% next_action(reach(Pos), move_backwards) :-
-%     % If goal is to reach a position
-%     % and the agent is next to the position and facing the opposite direction
-%     agent_position(AP),
-%     facing(Dir),
-%     adjacent(Pos, AP, Dir),
-%     % move backwards
-%     !.
 next_action(reach(Pos), turn_clockwise) :-
     % If goal is to reach a position
     % and the agent is next to the position, but facing the wrong direction
@@ -1089,24 +902,11 @@ next_action(reach(Pos), Action) :-
     next_action(reach(Next), Action),
     !.
 
-next_action(kill(EnemyPos), shoot) :-
-    % If goal is to kill, and the agent is adjacent to the enemy in the right direction,
-    % shoot
-    agent_position(AP),
-    facing(Dir),
-    adjacent(AP, EnemyPos, Dir),
-    !.
-next_action(kill(EnemyPos), turn_clockwise) :-
-    % If goal is to kill, and the agent is adjacent to the enemy in the wrong direction,
-    % turn
-    agent_position(AP),
-    adjacent(AP, EnemyPos, _),
-    !.
-next_action(kill(EnemyPos), Action) :-
-    % If goal is to kill, and the agent is not next to the enemy,
-    % act as if going to the enemy position
-    next_action(reach(EnemyPos), Action),
-    !.
+next_action(kill, turn_clockwise) :-
+    % If goal is to kill, turn and shoot
+    % TODO: improve strategy
+    last_action(shoot).
+next_action(kill, shoot).
 
 
 % a_star_heuristic/3

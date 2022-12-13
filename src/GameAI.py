@@ -58,6 +58,11 @@ class GameAI():
         self.score = score
         self.energy = energy
     
+    def receiveShotHit(self, agent: str):
+        pass
+
+    def receiveGotHit(self, agent: str):
+        pass
 
     # <summary>
     # Observations received

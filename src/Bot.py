@@ -40,7 +40,7 @@ class Bot():
     timer1: typing.Optional[Timer] = None
     
     running = True
-    thread_interval = 1 # USE BETWEEN 0.1 and 1 (0.1 real setting, 1 debug settings and makes the bot slower)
+    thread_interval = 0.2 # USE BETWEEN 0.1 and 1 (0.1 real setting, 1 debug settings and makes the bot slower)
 
     playerList: typing.Dict[int, PlayerInfo] = {} #new Dictionary<long, PlayerInfo>
     scoreList: typing.List[ScoreBoard] = [] #List<ScoreBoard>
@@ -258,8 +258,7 @@ class Bot():
             elif cmd[0] == "h":
                 if len(cmd) <= 1:
                     return
-                o = ["hit"]
-                self.gameAi.GetObservations(o)
+                self.gameAi.receiveShotHit(cmd[1])
                 self.msg.append("you hit " + cmd[1])                    
                 
             ######################################################        
@@ -267,8 +266,7 @@ class Bot():
             elif cmd[0] == "d":
                 if len(cmd) <= 1:
                     return
-                o = ["damage"]
-                self.gameAi.GetObservations(o)
+                self.gameAi.receiveGotHit(cmd[1])
                 self.msg.append(cmd[1] + " hit you")                    
                 
             ######################################################        
