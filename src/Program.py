@@ -21,5 +21,16 @@ __email__ = "abaffa@inf.puc-rio.br"
 from Bot import Bot
 
 if __name__ == "__main__":
+    import logging
+    import sys
+
+    LOG_FORMAT = format='[%(levelname)s] %(message)s'
+
+    print('args:', sys.argv.__repr__())
+    if len(sys.argv) > 1:
+        LOG_FILE = sys.argv[1]
+        logging.basicConfig(filename=LOG_FILE, level=logging.DEBUG, format=LOG_FORMAT)
+    else:
+        logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
     bot = Bot()
 

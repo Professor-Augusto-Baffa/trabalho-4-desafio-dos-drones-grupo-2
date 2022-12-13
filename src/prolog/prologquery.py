@@ -3,6 +3,7 @@ from .multithreadprolog import PrologMT as Prolog
 import os
 import typing
 import re
+import logging
 
 class Sensors:
     
@@ -98,7 +99,7 @@ class PrologQuery():
     
     def reset(self):
         self.prolog = Prolog()
-        print(__file__)
+        logging.root.debug(__file__)
         package_dir = os.path.dirname(__file__)
         kb_file = f'{os.path.relpath(package_dir, start=os.curdir)}/pitfall.pl'
         self.prolog.consult(kb_file)
@@ -205,13 +206,16 @@ class PrologQuery():
     def get_first_result(self, query):
         for res in self.prolog.query(query):
             return res
-        
+    
+    def disable_logging(self):
+        query = 'disable_logging'
+        _ = self.get_first_result(query)
     
 
 if __name__ == "__main__":
     prolog = PrologQuery()
-    print(prolog.get_first_result('last_observation(S)'))
+    logging.root.debug(prolog.get_first_result('last_observation(S)'))
     prolog.set_observations(Sensors(False, False, False, False, False, False))
-    print(prolog.get_first_result('last_observation(S)'))
-    print(prolog.get_decision())
+    logging.root.debug(prolog.get_first_result('last_observation(S)'))
+    logging.root.debug(prolog.get_decision())
     

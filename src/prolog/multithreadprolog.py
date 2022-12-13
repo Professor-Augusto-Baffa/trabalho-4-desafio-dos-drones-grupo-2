@@ -1,6 +1,7 @@
 # Source: https://github.com/yuce/pyswip/issues/3#issuecomment-355458825
 
 import pyswip, ctypes
+import logging
 
 class PrologMT(pyswip.Prolog):
     """Multi-threaded (one-to-one) pyswip.Prolog ad-hoc reimpl"""
@@ -18,11 +19,11 @@ class PrologMT(pyswip.Prolog):
         pengine_id = cls.PL_thread_self()
         if (pengine_id == -1):
             pengine_id = cls.PL_thread_attach_engine(None)
-            print("{INFO} attach pengine to thread: %d" % pengine_id)
+            logging.info("attach pengine to thread: %d", pengine_id)
         if (pengine_id == -1):
             raise pyswip.prolog.PrologError("Unable to attach new Prolog engine to the thread")
         elif (pengine_id == -2):
-            print("{WARN} Single-threaded swipl build, beware!")
+            logging.warning("Single-threaded swipl build, beware!")
 
     class _QueryWrapper(pyswip.Prolog._QueryWrapper):
         def __call__(self, *args, **kwargs):

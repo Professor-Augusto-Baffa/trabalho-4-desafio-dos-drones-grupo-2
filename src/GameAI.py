@@ -22,6 +22,7 @@ import random
 from Map.Position import Position
 import typing
 import prolog.prologquery as ai
+import logging
 
 # <summary>
 # Game AI Example
@@ -35,6 +36,10 @@ class GameAI():
     score = 0
     energy = 0
 
+    def __init__(self) -> None:
+        if logging.root.level >= logging.INFO:
+            self.brain.disable_logging()
+
     # <summary>
     # Refresh player status
     # </summary>
@@ -45,7 +50,7 @@ class GameAI():
     # <param name="score">player score</param>
     # <param name="energy">player energy</param>
     def SetStatus(self, x: int, y: int, dir: str, state: str, score: int, energy: int):
-        print(f'Got status x: {x}, y: {y}, dir: {dir}, state:{state}, score: {score}, energy: {energy}')
+        logging.root.debug(f'Got status x: {x}, y: {y}, dir: {dir}, state:{state}, score: {score}, energy: {energy}')
         self.brain.set_position(x, y)
         self.brain.set_facing(dir)
         self.brain.set_energy(energy)
@@ -69,7 +74,7 @@ class GameAI():
     # </summary>
     # <param name="o">list of observations</param>
     def GetObservations(self, o: typing.List[str]):
-        print('Got observations: ', o)
+        logging.root.debug('Got observations: ' + str(o))
         sensors = ai.Sensors()
 
         for s in o:
@@ -98,6 +103,9 @@ class GameAI():
 
             elif s == "weakLight":
                 pass
+
+            elif 'enemy' in s:
+                pass
         self.brain.set_observations(sensors)
 
 
@@ -105,7 +113,7 @@ class GameAI():
     # No observations received
     # </summary>
     def GetObservationsClean(self):
-        print('Got observations:', '[]')
+        logging.root.debug('Got observations: ' + '[]')
         sensors = ai.Sensors()
         self.brain.set_observations(sensors)
 
@@ -176,7 +184,7 @@ class GameAI():
             pass
 
         self.brain.print_map()
-        print(f'Got decision: {decision}')
+        logging.root.debug(f'Got decision: {decision}')
         return decision
     
     def reset(self):

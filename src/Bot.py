@@ -26,6 +26,7 @@ from dto.PlayerInfo import PlayerInfo
 from dto.ScoreBoard import ScoreBoard
 import datetime
 import typing
+import logging
 
 # <summary>
 # Bot Class
@@ -164,8 +165,8 @@ class Bot():
                     self.playerList.clear()
 
                 if self.gameStatus != cmd[1]:
-                    print("New Game Status: " + cmd[1])
-                    print('Resetting AI')
+                    logging.root.info("New Game Status: " + cmd[1])
+                    logging.root.info('Resetting AI')
                     self.gameAi.reset()
 
                 self.gameStatus = cmd[1]
@@ -273,14 +274,14 @@ class Bot():
 
         except Exception as ex:
             if ex != None:
-                print(ex)
+                logging.root.debug(ex)
             pass
 
     def SocketStatusChange(self):
     
         if self.client.connected:
 
-            print("Connected")
+            logging.root.debug("Connected")
             self.client.sendName(self.name)
             self.client.sendRGB(255,240,240)  # BOT COLOR
             self.client.sendRequestGameStatus()
@@ -288,7 +289,7 @@ class Bot():
             self.client.sendRequestObservation()
 
         else:
-            print("Disconnected")
+            logging.root.debug("Disconnected")
 
     # <summary>
     # send a message to other users
@@ -340,10 +341,10 @@ class Bot():
 
         elif self.msgSeconds >= 5000: # 5 SECONDS
 
-            print(self.gameStatus)
-            print(self.GetTime())
-            print("-----------------")
-            print(self.sscoreList)
+            logging.root.info(self.gameStatus)
+            logging.root.info(self.GetTime())
+            logging.root.info("-----------------")
+            logging.root.info(self.sscoreList)
 
             self.client.sendRequestScoreboard()
         
@@ -353,7 +354,7 @@ class Bot():
             if len(self.msg) > 0:
 
                 for s in self.msg:
-                    print(s)
+                    logging.root.info(s)
 
                 self.msg.clear()
 

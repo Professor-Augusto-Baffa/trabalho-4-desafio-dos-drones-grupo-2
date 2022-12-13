@@ -24,6 +24,7 @@ import sys
 import threading
 import time
 import typing
+import logging
 
 CommandHandler = typing.Callable[[str], None]
 StatusChangeHandler = typing.Callable[[], None]
@@ -224,7 +225,7 @@ class HandleClient():
                 self.client_socket.send(send_cmd)
 
         except Exception as ex:
-            print(ex)
+            logging.root.debug(ex)
             self.KeepAlive()
 
     # <summary>
@@ -275,7 +276,7 @@ class HandleClient():
                         eventhandler(cmd)
 
             except Exception as ex: # (Exception ex)
-                print(ex)
+                logging.root.debug(ex)
                 self.KeepAlive()
 
 
@@ -317,7 +318,7 @@ class HandleClient():
                     offset = self.ProcessBuffer(data)
 
                 except Exception as ex: # (Exception ex)
-                    print(ex)
+                    logging.root.debug(ex)
                     self.KeepAlive()
 
             else:
