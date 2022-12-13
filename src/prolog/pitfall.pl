@@ -12,7 +12,6 @@
 :- module(pitfall, [
     sense/1,
     learn/3,
-    act/1,
     facing/1,
     set_agent_position/1,
     set_agent_facing/1,
@@ -44,7 +43,6 @@
     possible_position/3,
     agent_position/1,
     facing/1,
-    hit_wall/0,
     killed_enemy/0,
     goal/1,
     certain/2,
@@ -437,15 +435,6 @@ update_game_score(NewScore) :-
     !.
 update_game_score(_).
 
-% pick_up/1
-% Pick Up Golden Coin -> -5 cost + 1000 reward = 995
-% Pick Up Golden Ring -> -5 cost + 500 reward  = 495
-% Pick Up Failed      -> -5 cost + 0 reward    = -5
-pick_up_score(Reward) :-
-    get_game_score(OldScore),
-    (NewScore is integer(Reward)+integer(OldScore)-5),
-    update_game_score(NewScore),
-    !.
 
 % killed/1
 % Killed by enemy -> Cost = -10 points
@@ -461,30 +450,6 @@ killed_score(Cost) :-
 killing_enemy_score :-
     get_game_score(OldScore),
     (NewScore is integer(OldScore)+1000),
-    update_game_score(NewScore),
-    !.
-
-% attacked/1
-% Attacked by enemy (other agent) -> -{damage}
-attacked_score :-
-    get_game_score(OldScore),
-    (NewScore is integer(OldScore)-10),
-    update_game_score(NewScore),
-    !.
-
-% shooting/0
-% Shooting an arrow -> -10 points
-shooting_score :-
-    get_game_score(OldScore),
-    (NewScore is integer(OldScore)-10),
-    update_game_score(NewScore),
-    !.
-
-% gen_action_score/0
-% For general actions such as moving, etc -> -1 point
-gen_action_score :-
-    get_game_score(OldScore),
-    (NewScore is integer(OldScore)-1),
     update_game_score(NewScore),
     !.
 
@@ -511,133 +476,6 @@ get_inventory(Ammo, PowerUps) :-
     !.
 
 
-% update_inventory/2
-% Called whenever agent uses a power up or ammo
-update_inventory(NewAmmo, NewPowerUps) :-
-    (NewAmmo >= 0, NewPowerUps >= 0),
-    retractall(inventory(agent,_,_)),
-    assertz(inventory(agent, NewAmmo, NewPowerUps)),
-    !.
-update_inventory(_,_).
-
-
-% use_ammo/0
-% Agent uses 1 ammo
-use_ammo :-
-    get_inventory(OldAmmo, PowerUps),
-    (NewAmmo is integer(OldAmmo)+1),
-    update_inventory(NewAmmo, PowerUps),
-    !.
-
-% use_power_up/0
-% Agent uses 1 power up
-use_power_up :-
-    get_inventory(Ammo, OldPowerUps),
-    (NewPowerUps is integer(OldPowerUps)+1),
-    update_inventory(Ammo, NewPowerUps),
-    world_position(agent, AP),
-    retractall(world_position(power_up, AP)),
-    !.
-
-
-
-%
-% Attack System
-% ----
-% Attacks are made by other angents
-% Enemy attacks -> -10HP for agent
-% Agent attacks -> -10HP for enemy
-% Ammo count: unlimited
-
-% receive_effects/0
-receive_effects :-
-% TODO: update all this according to new observation system
-    log('Effects:~n'),
-    agent_power_up,
-    enemy_attacks,
-    teleport_attack,
-    fall_in_pit.
-
-
-% agent_power_up/1
-% Energy filled by power-ups: 10, 20, 50
-% Rule for updating health when agent collects power up
-% Has to match agent's position
-agent_power_up(PowerUpType) :-
-    world_position(agent, AP),
-    world_position(power_up, AP),
-    %use_power_up,
-    get_agent_health(OldHealth),
-    (NewHealth is integer(OldHealth)+integer(PowerUpType)),
-    !,
-    update_agent_health(NewHealth,_).
-agent_power_up :-
-    log('~t~2|No power up available!~n').
-
-
-% enemy_attacks/0
-% 
-% Agent health = -10 points
-enemy_attacks :-
-    % If the agent is at an enemy's position
-    world_position(agent, AP),
-    world_position(large_enemy, AP),
-    % Decrease the score
-    % attacked_score,
-    % Decrease health
-    get_agent_health(OldHealth),
-    (NewHealth is integer(OldHealth)-10),
-    !,
-    (Cost is 10),
-    update_agent_health(NewHealth,Cost),
-    log('~t~2|Attacked by an enemy!~n').
-enemy_attacks.
-
-% teleport_attack/0
-% Enemy attacks with teleport
-teleport_attack :-
-    world_position(agent, AP),
-    world_position(teleporter, AP),
-    % Find new position
-    minX(MinX), maxX(MaxX), minY(MinY), maxY(MaxY),
-    random_between(MinX, MaxX, X),
-    random_between(MinY, MaxY, Y),
-    % Update world position
-    retractall(world_position(agent, _)),
-    assertz(world_position(agent, (X, Y))),
-    retractall(agent_position(_)),
-    log('~t~2|Attacked by a teleporter!~n'),
-    !.
-teleport_attack.
-
-% TODO:
-% fall_in_pit/0
-fall_in_pit :-
-    world_position(agent, AP),
-    world_position(pit, AP),
-    !,
-    (Cost is 1000),
-    update_agent_health(0,Cost).
-fall_in_pit.
-
-% agent_attacks/2
-% Damage is 10 points
-%
-% 1. game score -> -10 points
-% 2. enemy health -> -10 points
-agent_attacks(EnemyPos, Enemy) :-
-    %get_inventory(Ammo, _),
-    %(Ammo > 0), 
-    %use_ammo,
-    shooting_score,
-    get_health(EnemyPos, Enemy, OldHealth),
-    (NewHealth is integer(OldHealth)-10),
-    update_health(EnemyPos, Enemy, NewHealth),
-    !.
-agent_attacks(_,_) :-
-    log('Agent attack on enemy failed!~n'),
-    !.
-
 %
 % Observation and decision making
 % ----
@@ -651,13 +489,11 @@ sense_learn_act(Goal, Action) :-
     log('Learning:~n'),
     learn(Sensors, Goal, Action),
     print_cave,
-    log('Goal: ~w~nAction: ~w~n', [Goal, Action]),
-    act(Action).
+    log('Goal: ~w~nAction: ~w~n', [Goal, Action]).
 
 % sense/1
 % sense(-Sensors)
 sense((Steps, Breeze, Flash, Glow, Impact, Scream)) :-
-    receive_effects, % TODO: check if still makes sense
     last_observation((Steps, Breeze, Flash, Glow, Impact, Scream)),
     write_sensors((Steps, Breeze, Flash, Glow, Impact, Scream)).
 
@@ -668,12 +504,6 @@ learn(Sensors, Goal, Action) :-
     update_goal(Goal),
     next_action(Goal, Action),
     set_last_action(Action).
-
-% act/1
-% act(+Action)
-act(Action) :-
-    clear_transient_flags,
-    perform_action(Action).
 
 
 % Sensors
@@ -702,51 +532,6 @@ force_update_position(NP) :-
     retractall(agent_position(_)),
     assertz(world_position(agent, NP)),
     assertz(agent_position(NP)).
-
-world_step :-
-    % If valid step, update position
-    world_position(agent, AP),
-    facing(Direction),
-    adjacent(AP, NP, Direction),
-    valid_position(NP),
-    \+ blocked_position(NP),
-    retractall(world_position(agent, _)),
-    assertz(world_position(agent, NP)),
-    !.
-world_step :-
-    % If invalid step, hit wall
-    assert_new(hit_wall).
-
-world_shoot :-
-    world_position(agent, AP),
-    facing(Dir),
-    adjacent(AP, EnemyPos, Dir),
-    world_position(EnemyType, EnemyPos),
-    agent_attacks(EnemyPos, EnemyType),
-    !.
-
-world_pick_up :-
-    % If on the same position as gold coin, remove gold from the world
-    world_position(agent, AP),
-    world_position(gold_coin, AP),
-    pick_up_score(1000),
-    retractall(world_position(gold_coin, AP)),
-    !.
-world_pick_up :-
-    % If on the same position as gold ring, remove gold from the world
-    world_position(agent, AP),
-    world_position(gold_ring, AP),
-    pick_up_score(500),
-    retractall(world_position(gold_ring, AP)),
-    !.
-world_pick_up :-
-    % Failed to pick up gold
-    pick_up_score(0).
-
-clear_transient_flags :-
-    retractall(hit_wall),
-    retractall(killed_enemy).
-
 
 %
 % Update knowledge
@@ -1321,38 +1106,6 @@ next_action(kill(EnemyPos), Action) :-
     % If goal is to kill, and the agent is not next to the enemy,
     % act as if going to the enemy position
     next_action(reach(EnemyPos), Action),
-    !.
-
-% perform_action/1
-% perform_action(+Action)
-perform_action(_) :-
-    gen_action_score,
-    fail.
-perform_action(move_forward) :-
-    facing(Direction),
-    agent_position(AP),
-    adjacent(AP, NP, Direction),
-    set_last_position(AP),
-    retractall(agent_position(_)),
-    assertz(agent_position(NP)),
-    world_step,
-    !.
-perform_action(turn_clockwise) :-
-    facing(Direction),
-    clockwise(Direction, NewDirection),
-    retractall(facing(_)),
-    assertz(facing(NewDirection)),
-    !.
-perform_action(pick_up) :-
-    collected(gold, Count),
-    NewCount is Count + 1,
-    retractall(collected(gold, _)),
-    assertz(collected(gold, NewCount)),
-    world_pick_up,
-    !.
-perform_action(step_out). % Nothing to do
-perform_action(shoot) :-
-    world_shoot,
     !.
 
 
