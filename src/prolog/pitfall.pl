@@ -129,9 +129,9 @@ anticlockwise(east, north).
 % adjacent/2
 % adjacent(+Pos, ?NextPos, ?Direction)
 adjacent((X, Y1), (X, Y2), south) :-
-    Y2 is Y1 - 1.
-adjacent((X, Y1), (X, Y2), north) :-
     Y2 is Y1 + 1.
+adjacent((X, Y1), (X, Y2), north) :-
+    Y2 is Y1 - 1.
 adjacent((X1, Y), (X2, Y), west) :-
     X2 is X1 - 1.
 adjacent((X1, Y), (X2, Y), east) :-
@@ -1043,75 +1043,6 @@ check_count(pit) :-
     learn_no_more_pits.
 check_count(pit).
 
-learn_cave_bounds :-
-    facing(east),
-    % Hit wall when walking east, so learn maxX
-    agent_position((MaxX, _)),
-    assert_new(certain(maxX, MaxX)),
-    review_gt_max_x_assumptions,
-    !.
-learn_cave_bounds :-
-    facing(west),
-    % Hit wall when walking west, so learn minX
-    agent_position((MinX, _)),
-    assert_new(certain(minX, MinX)),
-    review_lt_min_x_assumptions,
-    !.
-learn_cave_bounds :-
-    facing(north),
-    % Hit wall when walking north, so learn maxY
-    agent_position((_, MaxY)),
-    assert_new(certain(maxY, MaxY)),
-    review_gt_max_y_assumptions,
-    !.
-learn_cave_bounds :-
-    facing(south),
-    % Hit wall when walking south, so learn minY
-    agent_position((_, MinY)),
-    assert_new(certain(minY, MinY)),
-    review_lt_min_y_assumptions,
-    !.
-
-% Review assumptions
-% Remove possible_positions that are out of bounds
-
-review_lt_min_x_assumptions :-
-    certain(minX, MinX),
-    log('~t~2|X >= ~w~n', [MinX]),
-    (possible_position(_, (X, _), _) ; certain(_, (X, _))),
-    X < MinX,
-    retractall(possible_position(_, (X, _), _)),
-    retractall(certain(_, (X, _))),
-    fail.
-review_lt_min_x_assumptions.
-
-review_lt_min_y_assumptions :-
-    certain(minY, MinY),
-    log('~t~2|Y >= ~w~n', [MinY]),
-    (possible_position(_, (_, Y), _) ; certain(_, (_, Y))),
-    Y < MinY,
-    retractall(possible_position(_, (_, Y), _)),
-    retractall(certain(_, (_, Y))),
-    fail.
-review_lt_min_y_assumptions.
-
-review_gt_max_x_assumptions :-
-    certain(maxX, MaxX),
-    log('~t~2|X <= ~w~n', [MaxX]),
-    (possible_position(_, (X, _), _) ; certain(_, (X, _))),
-    X > MaxX,
-    retractall(possible_position(_, (X, _), _)),
-    fail.
-review_gt_max_x_assumptions.
-
-review_gt_max_y_assumptions :-
-    certain(maxY, MaxY),
-    log('~t~2|Y <= ~w~n', [MaxY]),
-    (possible_position(_, (_, Y), _) ; certain(_, (_, Y))),
-    Y > MaxY,
-    retractall(possible_position(_, (_, Y), _)),
-    fail.
-review_gt_max_y_assumptions.
 
 % infer_dangerous_positions/0
 % Use current knowledge to consolidate possible positions of dangers into certainties.
