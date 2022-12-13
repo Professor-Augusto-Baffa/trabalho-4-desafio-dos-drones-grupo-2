@@ -103,6 +103,44 @@ class GameAI():
         print('Got observations:', '[]')
         sensors = ai.Sensors()
         self.brain.set_observations(sensors)
+
+    # <summary>
+    # Get list of observable adjacent positions
+    # </summary>
+    # <returns>List of observable adjacent positions</returns>
+    def GetObservableAdjacentPositions(self) -> typing.List[Position]:
+        # TODO: get adjacent positions from prolog
+        ret: typing.List[Position] = []
+
+        ret.append(Position(self.player.x - 1, self.player.y))
+        ret.append(Position(self.player.x + 1, self.player.y))
+        ret.append(Position(self.player.x, self.player.y - 1))
+        ret.append(Position(self.player.x, self.player.y + 1))
+
+        return ret
+
+
+    # <summary>
+    # Get next forward position
+    # </summary>
+    # <returns>next forward position</returns>
+    def NextPosition(self) -> typing.Optional[Position]:
+
+        ret: typing.Optional[Position] = None
+
+        if self.dir == "north":
+            ret = Position(self.player.x, self.player.y - 1)
+
+        elif self.dir == "east":
+                ret = Position(self.player.x + 1, self.player.y)
+
+        elif self.dir == "south":
+                ret = Position(self.player.x, self.player.y + 1)
+
+        elif self.dir == "west":
+                ret = Position(self.player.x - 1, self.player.y)
+
+        return ret
     
 
     # <summary>
@@ -112,26 +150,30 @@ class GameAI():
     def GetDecision(self):
 
         action = self.brain.get_decision()
-        n = random.randint(0,7)
-        
-        if action.action == 'pick_up':
-            return "pegar_ouro"
-        elif action.action == 'move_forward':
-            return "andar"
-        elif action.action == 'move_backwards':
-            return "andar_re"
-        elif action.action == 'turn_clockwise':
-            return "virar_direita"
-        elif action.action == 'turn_anticlockwise':
-            return "virar_esquerda"
-        elif action.action == 'step_out':
+        decision = ''
+
+        try:
+            if action.action == 'pick_up':
+                decision = 'pegar'
+            elif action.action == 'move_forward':
+                decision = 'andar'
+            elif action.action == 'move_backwards':
+                decision = 'andar_re'
+            elif action.action == 'turn_clockwise':
+                decision = 'virar_direita'
+            elif action.action == 'turn_anticlockwise':
+                decision = 'virar_esquerda'
+            elif action.action == 'step_out':
+                pass
+            elif action.action == 'shoot':
+                decision = 'atacar'
+        except Exception:
             pass
-        elif action.action == 'shoot':
-            return "atacar"
 
-        # TODO: Missing actions:
-        # - "pegar_anel"
-        # - "pegar_powerup"
-
-        return ""
+        self.brain.print_map()
+        print(f'Got decision: {decision}')
+        return decision
+    
+    def reset(self):
+        self.brain.reset()
 

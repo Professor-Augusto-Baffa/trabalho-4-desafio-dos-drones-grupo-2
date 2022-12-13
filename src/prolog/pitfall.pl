@@ -31,7 +31,8 @@
     collected/2,
     set_last_observation/1,
     last_observation/1,
-    set_game_score/1
+    set_game_score/1,
+    update_agent_health/2
 ]).
 
 :- use_module(a_star).
@@ -129,8 +130,8 @@ adjacent((X1, Y), (X2, Y), west) :-
 adjacent((X1, Y), (X2, Y), east) :-
     X2 is X1 + 1.
 
-minX(1). maxX(59).
-minY(1). maxY(34).
+minX(0). maxX(59).
+minY(0). maxY(34).
 
 % valid_position/1
 % valid_position(+Pos)
@@ -195,8 +196,7 @@ world_count(power_up_50, 1).
 print_cave :-
     minY(MinY), maxY(MaxY),
     between(MinY, MaxY, Y),
-    Line is MaxY - Y + 1,
-    print_cave_line(Line),
+    print_cave_line(Y),
     fail.
 print_cave :-
     get_agent_health(H),
@@ -760,6 +760,7 @@ update_knowledge(Sensors) :-
 set_visited_cell :-
     agent_position(AP),
     assert_new(certain(visited, AP)),
+    set_last_position(AP),
     log('~t~2|visited: ~w~n', [AP]).
 
 % update_steps/1
@@ -1349,30 +1350,28 @@ next_action(reach(Pos), move_forward) :-
     adjacent(AP, Pos, Dir),
     % move forward
     !.
-next_action(reach(Pos), move_backwards) :-
-    % If goal is to reach a position
-    % and the agent is next to the position and facing the opposite direction
-    agent_position(AP),
-    facing(Dir),
-    adjacent(AP, Pos, Dir),
-    % move backwards
-    !.
+% next_action(reach(Pos), move_backwards) :-
+%     % If goal is to reach a position
+%     % and the agent is next to the position and facing the opposite direction
+%     agent_position(AP),
+%     facing(Dir),
+%     adjacent(Pos, AP, Dir),
+%     % move backwards
+%     !.
 next_action(reach(Pos), turn_clockwise) :-
     % If goal is to reach a position
     % and the agent is next to the position, but facing the wrong direction
     agent_position(AP),
-    adjacent(AP, Pos, Dir),
     facing(FD),
     clockwise(FD, Dir),
+    adjacent(AP, Pos, Dir),
     % turn clockwise
     !.
-next_action(reach(Pos), turn_clockwise) :-
+next_action(reach(Pos), turn_anticlockwise) :-
     % If goal is to reach a position
     % and the agent is next to the position, but facing the wrong direction
     agent_position(AP),
     adjacent(AP, Pos, Dir),
-    facing(FD),
-    clockwise(Dir, FD),
     % turn anticlockwise
     !.
 next_action(reach(Pos), Action) :-

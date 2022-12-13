@@ -32,7 +32,7 @@ import typing
 # </summary>
 class Bot():
 
-    name = "BOT_NAME" # BOT NAME
+    name = "THEBOT" # BOT NAME
     host = "atari.icad.puc-rio.br" # SERVER
 
     client: typing.Optional[HandleClient] = None
@@ -165,6 +165,8 @@ class Bot():
 
                 if self.gameStatus != cmd[1]:
                     print("New Game Status: " + cmd[1])
+                    print('Resetting AI')
+                    self.gameAi.reset()
 
                 self.gameStatus = cmd[1]
                 self.time = int(cmd[2])
@@ -276,6 +278,19 @@ class Bot():
                 print(ex)
             pass
 
+    def SocketStatusChange(self):
+    
+        if self.client.connected:
+
+            print("Connected")
+            self.client.sendName(self.name)
+            self.client.sendRGB(255,240,240)  # BOT COLOR
+            self.client.sendRequestGameStatus()
+            self.client.sendRequestUserStatus()
+            self.client.sendRequestObservation()
+
+        else:
+            print("Disconnected")
 
     # <summary>
     # send a message to other users
@@ -308,11 +323,7 @@ class Bot():
             self.client.sendForward()
         elif decision ==  "atacar":
             self.client.sendShoot()
-        elif decision ==  "pegar_ouro":
-            self.client.sendGetItem()
-        elif decision == "pegar_anel":
-            self.client.sendGetItem()
-        elif decision == "pegar_powerup":
+        elif decision ==  "pegar":
             self.client.sendGetItem()
         elif decision ==  "andar_re":
             self.client.sendBackward()
@@ -354,17 +365,3 @@ class Bot():
             self.timer1 = Timer(self.thread_interval, self.timer1_Tick)
             self.timer1.start()
 
-
-    def SocketStatusChange(self):
-    
-        if self.client.connected:
-
-            print("Connected")
-            self.client.sendName(self.name)
-            #self.client.sendRGB(255,0,0)  # BOT COLOR
-            self.client.sendRequestGameStatus()
-            self.client.sendRequestUserStatus()
-            self.client.sendRequestObservation()
-
-        else:
-            print("Disconnected")

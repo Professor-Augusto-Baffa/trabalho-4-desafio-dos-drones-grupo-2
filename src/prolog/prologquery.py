@@ -1,4 +1,5 @@
-from pyswip import Prolog
+# from pyswip import Prolog
+from .multithreadprolog import PrologMT as Prolog
 import os
 import typing
 import re
@@ -93,6 +94,9 @@ class AgentDeadError(Exception):
 class PrologQuery():
 
     def __init__(self):
+        self.reset()
+    
+    def reset(self):
         self.prolog = Prolog()
         print(__file__)
         package_dir = os.path.dirname(__file__)
@@ -112,9 +116,16 @@ class PrologQuery():
         _ = self.get_first_result(query)
     
     def get_decision(self) -> Action:
-        sensors = self.sense()
-        _, action = self.learn(sensors)
-        return action
+        try:
+            sensors = self.sense()
+            _, action = self.learn(sensors)
+            return action
+        except Exception:
+            return None
+    
+    def print_map(self):
+        query = f'print_cave'
+        _ = self.get_first_result(query)
 
     
     def learn(self, sensors: Sensors) -> typing.Tuple[Goal, Action]:
@@ -139,7 +150,7 @@ class PrologQuery():
         _ = self.get_first_result(query)
 
     def set_energy(self, energy: int):
-        query = f'update_agent_health({energy})'
+        query = f'update_agent_health({energy}, 0)'
         _ = self.get_first_result(query)
 
     def set_score(self, score: int):

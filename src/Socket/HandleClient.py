@@ -280,7 +280,6 @@ class HandleClient():
 
 
     def ProcessBuffer(self, data: str):
-        
         index = data.find('\n')
         length = len(data)
 
