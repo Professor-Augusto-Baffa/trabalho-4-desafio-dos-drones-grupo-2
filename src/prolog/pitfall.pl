@@ -1142,6 +1142,7 @@ next_action(find_enemy, shoot) :-
     exit_find_mode,
     retractall(goal(_)),
     !.
+
 next_action(power_up(Pos), pick_up) :-
     % Found potion on position Pos 
     agent_position(Pos),
@@ -1154,7 +1155,23 @@ next_action(power_up(Pos), pick_up) :-
     assertz(certain(no_potion, Pos)),
     !.
 next_action(power_up(Pos), Action) :-
-    % Havent reached position Pos yet
+    % Havent reached position of possible potion yet
+    next_action(reach(Pos), Action),
+    !.
+
+next_action(gold(Pos), pick_up) :-
+    % Found gold on position Pos 
+    agent_position(Pos),
+    certain(glow, Pos),
+    !.
+next_action(gold(Pos), pick_up) :-
+    % There is no gold on position Pos
+    agent_position(Pos),
+    retractall(goal(_)),
+    assertz(certain(no_glow, Pos)),
+    !.
+next_action(gold(Pos), Action) :-
+    % Havent reached position of possible gold yet
     next_action(reach(Pos), Action),
     !.
 
