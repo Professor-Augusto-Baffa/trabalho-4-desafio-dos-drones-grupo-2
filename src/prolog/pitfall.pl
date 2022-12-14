@@ -621,7 +621,7 @@ update_teleporter(flash).
 % update_glow(+Glow)
 update_glow(glow) :-
     agent_position(AP),
-    assert_new(certain(gold, AP)),
+    assert_new(certain(glow, AP)),
     fail.
 update_glow(Glow) :-
     agent_position(AP),
@@ -665,15 +665,10 @@ update_power_up(potion) :-
     log('~t~2|power up position: ~w~n', [AP]).
 update_power_up(no_potion) :-
     agent_position(AP),
-    % Retract in case we collected gold from this position
+    % Retract in case we collected power up from this position
     retractall(certain(power_up, AP)),
     assert_new(certain(no_power_up, AP)).
 
-
-% collected(power_up, Old),
-% (New is integer(Old)+1),
-% retractall(collected(power_up,_)),
-% assert_new(collected(power_up, New)),
 
 % update_impact/1
 % update_impact(+Impact)
@@ -960,13 +955,22 @@ update_goal(kill, kill) :-
     assertz(kill_mode_count(CN)),
     !.
 update_goal(power_up(Pos), NewGoal) :-
-    % Find position of 10HP power up
+    % If didn't find power up on position, find new goal 
     agent_position(Pos),
     certain(no_power_up, Pos),
     retractall(goal(_)),
     update_goal(none, NewGoal),
     !.
 update_goal(power_up(Pos), pick_up(Pos)).
+
+update_goal(gold(Pos), NewGoal) :-
+    % If didn't find gold on position, find new goal
+    agent_position(Pos),
+    certain(no_gold, Pos),
+    retractall(goal(_)),
+    update_goal(none, NewGoal),
+    !.
+update_goal(gold(Pos), pick_up(Pos)).
 
 % set_goal/1
 % set_goal(+Goal)
@@ -986,7 +990,12 @@ ask_goal_KB(power_up(Pos)) :-
     (Health =< 50),
     certain(potion, Pos),
     !.
+ask_goal_KB(gold(Pos)) :-
+    % If agent found treasure
+    certain(glow, Pos),
+    !.
 
+% TODO: criteria for picking best power up based on health
 % choose_power_up(Health) :-
 %     (Health =< 30),
 %     update_goal(_,power_up_50),
