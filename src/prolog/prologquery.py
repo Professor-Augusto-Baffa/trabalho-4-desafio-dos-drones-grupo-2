@@ -158,6 +158,10 @@ class PrologQuery():
         query = f'set_game_score(({score}))'
         _ = self.get_first_result(query)
     
+    def set_detected_enemy(self, distance: int):
+        query = f'set_detected_enemy({distance})'
+        _ = self.get_first_result(query)
+    
     def get_health(self) -> int:
         query = 'get_agent_health(Health)'
         result = self.get_first_result(query)

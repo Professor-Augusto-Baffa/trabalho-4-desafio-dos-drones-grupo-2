@@ -29,6 +29,7 @@
     set_last_observation/1,
     last_observation/1,
     set_game_score/1,
+    set_detected_enemy/1,
     update_agent_health/2
 ]).
 
@@ -54,7 +55,9 @@
     last_observation/1,
     last_position/1,
     last_action/1,
-    blocked_position/1
+    blocked_position/1,
+    last_saw_enemy/2,
+    find_mode_search_pos/1
 ]).
 
 :- enable_logging.
@@ -107,7 +110,24 @@ set_last_action(Action) :-
     assertz(last_action(Action)),
     !.
 
-facing(east). % TODO: no longer fixed
+set_detected_enemy(Dist) :-
+    agent_position(AP),
+    facing(Dir),
+    cell_at_direction(AP, Dir, Dist, EnemyPos),
+    retractall(last_saw_enemy(_,_)),
+    assertz(last_saw_enemy(EnemyPos, 0)),
+    retractall(find_mode_dir(_)),
+    assertz(find_mode_dir(Dir)),
+    !.
+
+cell_at_direction(Pos, _, 0, Pos).
+cell_at_direction(Pos, Dir, Count, Cell) :-
+    adjacent(Pos, NextPos, Dir),
+    C is Count - 1,
+    cell_at_direction(NextPos, Dir, C, Cell),
+    !.
+
+facing(east).
 
 dir(north).
 dir(east).
@@ -209,6 +229,14 @@ print_cave_cell(X, Y) :-
 print_cave_cell(X, Y) :-
     blocked_position((X, Y)),
     log('\033[48;5;231m\033[38;5;0mB\033[0m'),
+    !.
+print_cave_cell(X, Y) :-
+    last_saw_enemy((X,Y), _),
+    log('\033[48;5;208m?\033[0m'),
+    !.
+print_cave_cell(X, Y) :-
+    find_mode_search_pos((X,Y)),
+    log('\033[48;5;208mf\033[0m'),
     !.
 print_cave_cell(X, Y) :-
     certain(visited, (X,Y)),
@@ -595,10 +623,15 @@ update_teleporter(flash).
 
 % update_glow/1
 % update_glow(+Glow)
+update_glow(glow) :-
+    agent_position(AP),
+    assert_new(certain(gold, AP)),
+    fail.
 update_glow(Glow) :-
     agent_position(AP),
     % Retract in case we collected gold from this position
     retractall(certain(glow, AP)),
+    retractall(certain(no_glow, AP)),
     assert_new(certain(Glow, AP)),
     update_gold(Glow).
 
@@ -727,12 +760,98 @@ infer_safe_positions.
 % Kill mode
 % ---------
 
-kill_mode_limit(20).
+kill_mode_limit(6).
 kill_mode_count(0).
 
 reset_kill_mode_count :-
     retractall(kill_mode_count(_)),
     assertz(kill_mode_count(0)).
+
+%
+% Find mode
+% ---------
+
+find_mode_limit(20).
+
+% find_mode_dir/1
+% find_mode_dir(-Dir)
+% The direction the enemy is from the agent
+
+% last_saw_enemy/2
+% last_saw_enemy(-Pos, -Rounds)
+% Dynamic
+% Pos: last position the enemy was seen on
+% Rounds: how many rounds ago the enemy was seen
+
+% find_mode_search_pos/1
+% find_mode_search_pos(-Pos)
+% A position to go to when looking for a previously seen enemy
+
+% find_mode_update_search_pos/0
+% Chooses a position to go look for an enemy that has previously been seen
+find_mode_update_search_pos :-
+    % There is a position to try to find the enemy
+    find_mode_search_pos(Pos),
+    % We've reached that position
+    agent_position(Pos),
+    % And we're facing the right direction
+    facing(Dir),
+    find_mode_dir(Dir),
+    % Choose other proxy
+    find_mode_get_search_pos(NP),
+    retractall(find_mode_search_pos(_)),
+    assertz(find_mode_search_pos(NP)).
+find_mode_update_search_pos :-
+    % There is no position to try to find the enemy
+    \+ find_mode_search_pos(_),
+    % Choose a proxy
+    find_mode_get_search_pos(Pos),
+    retractall(find_mode_search_pos(_)),
+    assertz(find_mode_search_pos(Pos)).
+find_mode_update_search_pos :-
+    % There is a position to try to find the enemy
+    find_mode_search_pos(Pos),
+    % We've reached that position
+    agent_position(Pos),
+    % And we're facing the right direction
+    facing(Dir),
+    find_mode_dir(Dir),
+    % Then, search failed above
+    % Give up on search
+    retractall(find_mode_search_pos(_)),
+    !.
+find_mode_update_search_pos.
+
+find_mode_get_search_pos(Pos) :-
+    % Choose a distance that the enemy may have walked that is less than the number
+    % of rounds since it was last seen
+    last_saw_enemy(_, Rounds),
+    Min is Rounds // 2,
+    between(Min, Rounds, Dist),
+    % Get a direction perpendicular to the one we were facing when we saw the enemy
+    find_mode_dir(Dir),
+    (clockwise(Dir, ND) ; anticlockwise(Dir, ND)),
+    % Pick a position in that direction that is Dist away from the agent
+    agent_position(AP),
+    cell_at_direction(AP, ND, Dist, Pos),
+    % Ensure that this position is different from the last one (if it exists)...
+    (   find_mode_search_pos(LastPos)
+    ->  LastPos \= Pos
+    ;   true
+    ),
+    % ... and that it is valid
+    valid_position(Pos),
+    \+ blocked_position(Pos),
+    % and it is reacheable
+    AP \= Pos,
+    next_action(reach(Pos), _),
+    !.
+
+exit_find_mode :-
+    retractall(find_mode_dir(_)),
+    retractall(last_saw_enemy(_, _)),
+    retractall(find_mode_search_pos(_)),
+    !.
 
 
 %
@@ -750,6 +869,28 @@ update_goal(NewGoal) :-
 
 % update_goal/2
 % update_goal(+CurrGoal, -NewGoal)
+update_goal(find_enemy, NewGoal) :-
+    % If the goal is to find an enemy but it was seen too long ago
+    last_saw_enemy(_, Rounds),
+    find_mode_limit(MaxRounds),
+    Rounds > MaxRounds,
+    retractall(goal(_)),
+    exit_find_mode,
+    % Get new goal
+    update_goal(none, NewGoal),
+    !.
+update_goal(_, find_enemy) :-
+    % If an enemy was seen, regardless of the current goal
+    last_saw_enemy(EnemyPos, Rounds),
+    find_mode_limit(MaxRounds),
+    Rounds =< MaxRounds,
+    % Increase the round counter
+    NR is Rounds + 1,
+    retractall(last_saw_enemy(_,_)),
+    assertz(last_saw_enemy(EnemyPos, NR)),
+    % Find the enemy
+    set_goal(find_enemy),
+    !.
 update_goal(reach(Pos), NewGoal) :-
     % If the goal is to reach an invalid position, remove goal and get a new one
     (\+ valid_position(Pos) ; blocked_position(Pos)),
@@ -903,12 +1044,39 @@ next_action(reach(Pos), Action) :-
     a_star(AP, Pos, a_star_heuristic, a_star_extend, [Next | _]),
     next_action(reach(Next), Action),
     !.
+next_action(kill, turn_clockwise).
+    % If goal is to kill, turn until the enemy is seen
 
-next_action(kill, turn_clockwise) :-
-    % If goal is to kill, turn and shoot
-    % TODO: improve strategy
-    last_action(shoot).
-next_action(kill, shoot).
+next_action(find_enemy, shoot) :-
+    % If just saw the enemy, shoot
+    % TODO: make sure no blocked cell on the way
+    last_saw_enemy(_, 1),
+    !.
+next_action(find_enemy, _) :-
+    % Update the search pos
+    (find_mode_update_search_pos -> fail).
+next_action(find_enemy, Action) :-
+    % There is a position to try to find the enemy
+    find_mode_search_pos(Pos),
+    % We've reached that position and we're facing the wrong direction
+    agent_position(Pos),
+    find_mode_dir(Dir),
+    % Face the right direction
+    adjacent(Pos, ProxyPos, Dir),
+    next_action(reach(ProxyPos), Action),
+    !.
+next_action(find_enemy, Action) :-
+    % There is a position to try to find the enemy
+    find_mode_search_pos(Pos),
+    % Try to reach that position
+    next_action(reach(Pos), Action),
+    !.
+next_action(find_enemy, shoot) :-
+    % If no action found, give up on looking for the enemy to avoid getting stuck
+    log(gave_up_on_enemy),
+    exit_find_mode,
+    retractall(goal(_)),
+    !.
 
 
 % a_star_heuristic/3

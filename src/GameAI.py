@@ -105,7 +105,10 @@ class GameAI():
                 pass
 
             elif 'enemy' in s:
-                pass
+                split_index = s.find('#')
+                if split_index > -1:
+                    distance = int(s[split_index + 1 : ])
+                    self.brain.set_detected_enemy(distance)
         self.brain.set_observations(sensors)
 
 
