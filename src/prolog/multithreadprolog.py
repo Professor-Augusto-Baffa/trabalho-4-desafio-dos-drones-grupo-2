@@ -19,7 +19,7 @@ class PrologMT(pyswip.Prolog):
         pengine_id = cls.PL_thread_self()
         if (pengine_id == -1):
             pengine_id = cls.PL_thread_attach_engine(None)
-            logging.info("attach pengine to thread: %d", pengine_id)
+            logging.debug("attach pengine to thread: %d", pengine_id)
         if (pengine_id == -1):
             raise pyswip.prolog.PrologError("Unable to attach new Prolog engine to the thread")
         elif (pengine_id == -2):

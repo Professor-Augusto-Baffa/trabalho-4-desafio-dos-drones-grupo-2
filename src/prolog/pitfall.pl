@@ -30,7 +30,8 @@
     last_observation/1,
     set_game_score/1,
     set_detected_enemy/1,
-    update_agent_health/2
+    update_agent_health/2,
+    set_got_hit/0
 ]).
 
 :- use_module(a_star).
@@ -57,7 +58,11 @@
     last_action/1,
     blocked_position/1,
     last_saw_enemy/2,
-    find_mode_search_pos/1
+    find_mode_search_pos/1,
+    flee_level/1,
+    got_hit/0,
+    flee_mode_count/1,
+    flee_mode_next_position/1
 ]).
 
 :- enable_logging.
@@ -876,6 +881,78 @@ exit_find_mode :-
     retractall(find_mode_search_pos(_)),
     !.
 
+%
+% Flee mode
+% ---------
+
+set_got_hit :-
+    assertz(got_hit).
+
+% flee_level/1
+% flee_level(-Level)
+% The current level of flee intensity
+
+flee_level_start(1).
+flee_mode_limit(20).
+flee_mode_count(0).
+% flee_mode_next_position(Pos)
+
+reset_flee_mode :-
+    retractall(got_hit),
+    flee_level_start(L),
+    retractall(flee_level(_)),
+    assertz(flee_level(L)),
+    retractall(flee_mode_count(_)),
+    assertz(flee_mode_count(0)),
+    retractall(flee_mode_next_position(_)),
+    !.
+
+update_flee_mode_next_position :-
+    % If there's no position, pick one
+    \+ flee_mode_next_position(_),
+    get_flee_mode_next_position(Pos),
+    assertz(flee_mode_next_position(Pos)),
+    !.
+update_flee_mode_next_position :-
+    % If there is a position
+    flee_mode_next_position(P),
+    % and we reached it
+    agent_position(P),
+    % get a new one
+    get_flee_mode_next_position(Pos),
+    retractall(flee_mode_next_position(_)),
+    assertz(flee_mode_next_position(Pos)),
+    % increment the level
+    flee_level(L),
+    NL is L + 1,
+    retractall(flee_level(_)),
+    assertz(flee_level(NL)),
+    !.
+update_flee_mode_next_position :-
+    % If there is a position, but we haven't reached it, keep it
+    flee_mode_next_position(_),
+    !.
+
+get_flee_mode_next_position((PX, PY)) :-
+    % Get a random delta between 1 and Level
+    flee_level(Level),
+    (   Level = 1
+    ->  
+        DeltaX = 1,
+        DeltaY = 1
+    ;   random(1, Level, DeltaX),
+        random(1, Level, DeltaY)
+    ),
+    % Pick a random DirX of -1 or 1
+    random(0, 1, R1),
+    DirX is R1 * 2 - 1,
+    % Pick a random DirY of -1 or 1
+    random(0, 1, R2),
+    DirY is R2 * 2 - 1,
+    % Get a new position relative to the agent's position
+    agent_position((X,Y)),
+    PX is X + DirX * DeltaX,
+    PY is Y + DirY * DeltaY.
 
 %
 % Update goal
@@ -892,6 +969,31 @@ update_goal(NewGoal) :-
 
 % update_goal/2
 % update_goal(+CurrGoal, -NewGoal)
+update_goal(_, flee) :-
+    % If got hit, enter flee mode or reset it
+    got_hit,
+    reset_flee_mode,
+    update_flee_mode_next_position,
+    set_goal(flee),
+    !.
+update_goal(flee, NewGoal) :-
+    % If in flee mode, and reached the limit, get new goal
+    flee_mode_count(Count),
+    flee_mode_limit(Limit),
+    Count > Limit,
+    reset_flee_mode,
+    update_goal(none, NewGoal),
+    !.
+update_goal(flee, flee) :-
+    % If in flee mode, and below the limit, keep goal
+    flee_mode_count(Count),
+    flee_mode_limit(Limit),
+    Count =< Limit,
+    NC is Count + 1,
+    retractall(flee_mode_count(_)),
+    assertz(flee_mode_count(NC)),
+    update_flee_mode_next_position,
+    !.
 update_goal(find_enemy, NewGoal) :-
     % If the goal is to find an enemy but it was seen too long ago
     last_saw_enemy(_, Rounds),
@@ -1141,6 +1243,17 @@ next_action(find_enemy, shoot) :-
     log(gave_up_on_enemy),
     exit_find_mode,
     retractall(goal(_)),
+    !.
+next_action(flee, Action) :-
+    % Act as to reach the flee position
+    flee_mode_next_position(P),
+    next_action(reach(P), Action),
+    !.
+next_action(flee, turn_clockwise) :-
+    % Else, give up on goal
+    log(gave_up_on_fleeing),
+    retractall(goal(_)),
+    reset_flee_mode,
     !.
 
 next_action(power_up(Pos), pick_up) :-

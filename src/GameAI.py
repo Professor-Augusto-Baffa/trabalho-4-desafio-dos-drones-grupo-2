@@ -36,9 +36,6 @@ class GameAI():
     score = 0
     energy = 0
 
-    def __init__(self) -> None:
-        if logging.root.level >= logging.INFO:
-            self.brain.disable_logging()
 
     # <summary>
     # Refresh player status
@@ -193,4 +190,6 @@ class GameAI():
     
     def reset(self):
         self.brain.reset()
+        if logging.root.level >= logging.INFO:
+            self.brain.disable_logging()
 
