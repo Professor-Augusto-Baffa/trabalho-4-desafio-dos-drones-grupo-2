@@ -735,6 +735,12 @@ learn(blocked, P) :-
     retractall(certain(safe, P)),
     assert_new(blocked_position(P)).
 
+% learn(no_power_up, P) :-
+%     retractall(certain(power_up, P)),
+%     assert_new(certain(no_power_up, P)).
+% learn(power_up, P) :-
+%     assert_new(certain(power_up, P)).
+
 
 % infer_dangerous_positions/0
 % Use current knowledge to consolidate possible positions of dangers into certainties.
@@ -959,6 +965,27 @@ update_goal(kill, kill) :-
     retractall(kill_mode_count(_)),
     assertz(kill_mode_count(CN)),
     !.
+update_goal(_, power_up_10) :-
+    % Find position of 10HP power up
+    agent_position(AP),
+    retractall(goal(_)),
+    certain(power_up_10, IP),
+    update_goal(_, reach(IP)),
+    !.
+update_goal(_, power_up_20) :-
+    % Find position of 10HP power up
+    agent_position(AP),
+    retractall(goal(_)),
+    certain(power_up_20, IP),
+    update_goal(_, reach(IP)),
+    !.
+update_goal(_, power_up_50) :-
+    % Find position of 10HP power up
+    agent_position(AP),
+    retractall(goal(_)),
+    certain(power_up_50, IP),
+    update_goal(_, reach(IP)),
+    !.
 
 % set_goal/1
 % set_goal(+Goal)
@@ -973,8 +1000,23 @@ ask_goal_KB(reach(Pos)) :-
     next_position_to_explore(Pos),
     !.
 ask_goal_KB(power_up) :-
+    % If agent health falls below 50%, pick up power up
     get_agent_health(Health),
     (Health =< 50),
+    choose_power_up(Health),
+    !.
+
+choose_power_up(Health) :-
+    (Health =< 30),
+    update_goal(_,power_up_50),
+    !.
+choose_power_up(Health) :-
+    (Health > 30, Health < 40),
+    update_goal(_,power_up_20),
+    !.
+choose_power_up(Health) :-
+    (Health >= 40),
+    update_goal(_,power_up_10),
     !.
 
 
@@ -1110,10 +1152,28 @@ next_action(find_enemy, shoot) :-
     exit_find_mode,
     retractall(goal(_)),
     !.
+next_action(power_up_10, Action) :-
+    % If agent health below 50%, find a known power up
+    agent_position(AP),
+    certain(power_up_10, IP),
+    next_action(reach(IP), Action),
+    !.
+next_action(power_up_20, Action) :-
+    % If agent health below 50%, find a known power up
+    agent_position(AP),
+    certain(power_up_20, IP),
+    next_action(reach(IP), Action),
+    !.
+next_action(power_up_50, Action) :-
+    % If agent health below 50%, find a known power up
+    agent_position(AP),
+    certain(power_up_50, IP),
+    next_action(reach(IP), Action),
+    !.
 next_action(power_up, Action) :-
     % If agent health below 50%, find a known power up
     agent_position(AP),
-    certain(blueLight, IP),
+    certain(power_up, IP),
     next_action(reach(IP), Action),
     !.
 
