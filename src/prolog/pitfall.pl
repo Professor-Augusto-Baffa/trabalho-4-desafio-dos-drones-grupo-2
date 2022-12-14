@@ -165,15 +165,8 @@ valid_position((X, Y)) :-
     minY(MinY), maxY(MaxY), between(MinY, MaxY, Y).
 
 
-% TODO: Review cave elements for new map
+% Cave Elements
 % -----
-% 1. 2 two small enemies (damage 20)
-% 2. 2 large enemies (damage 50)
-% 3. 8 pits
-% 4. 3 gold
-% 5. 4 teletransporting enemies
-% 6. 3 power ups
-% 7. Walls around the whole cave
 
 % world_position/2
 % world_position contains absolute world knowledge and should not be queried for decision making
@@ -491,7 +484,7 @@ learn(Sensors, Goal, Action) :-
 % 1. Steps (adjacent cells to damage-inflicting enemies)
 % 2. Breeze (adjacent cells to pits)
 % 3. Flash (adjacent cells to teleporting enemies)
-% 4. TODO: Glow (cells where gold is present)
+% 4. Glow (cells where gold/power up is present)
 %     - redLight  -> treasure
 %     - blueLight -> power up
 %     - weakLight -> unknown
