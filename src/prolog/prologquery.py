@@ -9,7 +9,7 @@ class Sensors:
     
     def __init__(
         self, steps: bool = False, breeze: bool = False, flash: bool = False,
-        glow: bool = False, impact: bool = False, scream: bool = False
+        glow: bool = False, impact: bool = False, scream: bool = False, power_up: bool = False,
     ) -> None:
         self.steps = steps
         self.breeze = breeze
@@ -17,6 +17,7 @@ class Sensors:
         self.glow = glow
         self.impact = impact
         self.scream = scream
+        self.power_up = power_up
     
     @staticmethod
     def from_dict(values: typing.Dict[str, str]) -> 'Sensors':
@@ -26,10 +27,11 @@ class Sensors:
         glow = values['Glow'] == 'glow'
         impact = values['Impact'] == 'impact'
         scream = values['Scream'] == 'scream'
-        return Sensors(steps, breeze, flash, glow, impact, scream)
+        power_up = values['PowerUp'] == 'power_up'
+        return Sensors(steps, breeze, flash, glow, impact, scream, power_up)
     
     def __repr__(self) -> str:
-        sensors = ['steps', 'breeze', 'flash', 'glow', 'impact', 'scream']
+        sensors = ['steps', 'breeze', 'flash', 'glow', 'impact', 'scream', 'power_up']
         for i, sensor in enumerate(sensors):
             if self.__getattribute__(sensor):
                 continue
@@ -105,7 +107,7 @@ class PrologQuery():
         self.prolog.consult(kb_file)
         
     def sense(self) -> Sensors:
-        query = 'sense((Steps, Breeze, Flash, Glow, Impact, Scream))'
+        query = 'sense((Steps, Breeze, Flash, Glow, Impact, Scream, PowerUp))'
         result = self.get_first_result(query)
         try:
             return Sensors.from_dict(result)
@@ -219,7 +221,7 @@ class PrologQuery():
 if __name__ == "__main__":
     prolog = PrologQuery()
     logging.root.debug(prolog.get_first_result('last_observation(S)'))
-    prolog.set_observations(Sensors(False, False, False, False, False, False))
+    prolog.set_observations(Sensors(False, False, False, False, False, False, False))
     logging.root.debug(prolog.get_first_result('last_observation(S)'))
     logging.root.debug(prolog.get_decision())
     

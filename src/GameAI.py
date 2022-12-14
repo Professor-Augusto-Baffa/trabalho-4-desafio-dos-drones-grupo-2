@@ -93,7 +93,7 @@ class GameAI():
 
             elif s == "blueLight":
                 # power up
-                sensors.glow = True
+                sensors.power_up = True
 
             elif s == "redLight":
                 # gold
