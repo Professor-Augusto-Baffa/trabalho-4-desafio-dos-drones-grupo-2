@@ -162,6 +162,10 @@ class PrologQuery():
         query = f'set_detected_enemy({distance})'
         _ = self.get_first_result(query)
     
+    def set_got_hit(self):
+        query = 'set_got_hit'
+        _ = self.get_first_result(query)
+    
     def get_health(self) -> int:
         query = 'get_agent_health(Health)'
         result = self.get_first_result(query)
