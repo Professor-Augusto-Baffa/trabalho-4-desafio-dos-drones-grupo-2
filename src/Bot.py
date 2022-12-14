@@ -34,14 +34,14 @@ import logging
 class Bot():
 
     name = "THE_BOT" # BOT NAME
-    host = "192.168.0.49" # SERVER
+    host = "atari.icad.puc-rio.br" # SERVER
 
     client: typing.Optional[HandleClient] = None
     gameAi: typing.Optional[GameAI] = None
     timer1: typing.Optional[Timer] = None
     
     running = True
-    thread_interval = 0.1 # USE BETWEEN 0.1 and 1 (0.1 real setting, 1 debug settings and makes the bot slower)
+    thread_interval = 0.25 # USE BETWEEN 0.1 and 1 (0.1 real setting, 1 debug settings and makes the bot slower)
 
     playerList: typing.Dict[int, PlayerInfo] = {} #new Dictionary<long, PlayerInfo>
     scoreList: typing.List[ScoreBoard] = [] #List<ScoreBoard>
@@ -268,7 +268,10 @@ class Bot():
                 if len(cmd) <= 1:
                     return
                 self.gameAi.receiveGotHit(cmd[1])
+                msg = f'Ei, @{cmd[1]}, para de atirar em mim!'
+                self.client.sendSay(msg)
                 self.msg.append(cmd[1] + " hit you")                    
+                
                 
             ######################################################        
 

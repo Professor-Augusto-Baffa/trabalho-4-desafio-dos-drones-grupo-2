@@ -64,7 +64,7 @@ class GameAI():
         pass
 
     def receiveGotHit(self, agent: str):
-        pass
+        self.brain.set_got_hit()
 
     # <summary>
     # Observations received

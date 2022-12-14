@@ -4,6 +4,7 @@ import os
 import typing
 import re
 import logging
+import threading
 
 class Sensors:
     
@@ -135,6 +136,9 @@ class PrologQuery():
     def learn(self, sensors: Sensors) -> typing.Tuple[Goal, Action]:
         query = f'learn({sensors}, Goal, Action)'
         result = self.get_first_result(query)
+        if result is None:
+            logging.root.debug('Deu ruim na query')
+            return None, 'turn_clockwise'
         goal_str = result['Goal']
         action_str = result['Action']
         goal = Goal.from_str(goal_str)
@@ -172,12 +176,18 @@ class PrologQuery():
     def get_health(self) -> int:
         query = 'get_agent_health(Health)'
         result = self.get_first_result(query)
+        if result is None:
+            logging.root.debug('Deu ruim na query')
+            return 100
         health_str = result['Health']
         return int(health_str)
     
     def get_game_score(self) -> int:
         query = 'get_game_score(Score)'
         result = self.get_first_result(query)
+        if result is None:
+            logging.root.debug('Deu ruim na query')
+            return 0
         score_str = result['Score']
         return int(score_str)
     
@@ -207,16 +217,25 @@ class PrologQuery():
     def get_inventory(self) -> Inventory:
         query = 'get_inventory(Ammo,PowerUps).'
         res = self.get_first_result(query)
+        if res is None:
+            logging.root.debug('Deu ruim na query')
+            return Inventory(0, 0, 0)
         ammo = int(res['Ammo'])
         power_ups = int(res['PowerUps'])
         query = 'collected(gold,Gold).'
         res = self.get_first_result(query)
+        if res is None:
+            logging.root.debug('Deu ruim na query')
+            return Inventory(ammo, power_ups, 0)
         gold = int(res['Gold'])
         return Inventory(ammo, power_ups, gold)
 
     def get_first_result(self, query):
-        for res in self.prolog.query(query):
-            return res
+        try:
+            for res in self.prolog.query(query):
+                return res
+        except:
+            return None
     
     def disable_logging(self):
         query = 'disable_logging'

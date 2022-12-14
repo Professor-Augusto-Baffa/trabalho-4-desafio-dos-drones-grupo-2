@@ -901,13 +901,13 @@ flee_mode_count(0).
 % flee_mode_next_position(Pos)
 
 reset_flee_mode :-
-    retractall(got_hit),
     flee_level_start(L),
     retractall(flee_level(_)),
     assertz(flee_level(L)),
     retractall(flee_mode_count(_)),
     assertz(flee_mode_count(0)),
     retractall(flee_mode_next_position(_)),
+    retractall(got_hit),
     !.
 
 update_flee_mode_next_position :-
@@ -915,6 +915,7 @@ update_flee_mode_next_position :-
     \+ flee_mode_next_position(_),
     get_flee_mode_next_position(Pos),
     assertz(flee_mode_next_position(Pos)),
+    print('Flee to ', Pos),
     !.
 update_flee_mode_next_position :-
     % If there is a position
@@ -975,9 +976,9 @@ update_goal(NewGoal) :-
 update_goal(_, flee) :-
     % If got hit, enter flee mode or reset it
     got_hit,
-    reset_flee_mode,
     update_flee_mode_next_position,
     set_goal(flee),
+    reset_flee_mode,
     !.
 update_goal(flee, NewGoal) :-
     % If in flee mode, and reached the limit, get new goal
@@ -1029,7 +1030,8 @@ update_goal(kill, NewGoal) :-
     killed_enemy,
     reset_kill_mode_count,
     retractall(goal(_)),
-    update_goal(none, NewGoal).
+    update_goal(none, NewGoal),
+    NewGoal \= kill.
 update_goal(kill, NewGoal) :-
     % If the goal is to kill an enemy, and the time limit has been reached, remove goal and get a new one
     kill_mode_limit(L),
