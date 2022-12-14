@@ -92,10 +92,11 @@ class GameAI():
                 sensors.flash = True
 
             elif s == "blueLight":
-                # TODO: power up
-                pass
+                # power up
+                sensors.glow = True
 
             elif s == "redLight":
+                # gold
                 sensors.glow = True
 
             elif s == "greenLight":

@@ -73,11 +73,8 @@ assert_new(_).
 
 agent_position((1,1)).
 
-collected(gold_ring, 0).
-collected(gold_coin, 0).
-collected(power_up_10, 0).
-collected(power_up_20, 0).
-collected(power_up_50, 0).
+collected(gold, 0).
+collected(power_up, 0).
 
 %
 % World information
@@ -616,29 +613,64 @@ update_teleporter(flash).
 
 % update_glow/1
 % update_glow(+Glow)
-update_glow(glow) :-
+update_glow(redLight) :-
     agent_position(AP),
     assert_new(certain(gold, AP)),
     fail.
+update_glow(blueLight) :-
+    agent_position(AP),
+    assert_new(certain(power_up, AP)),
+    fail.
 update_glow(Glow) :-
+    (Glow == redLight),
     agent_position(AP),
     % Retract in case we collected gold from this position
     retractall(certain(glow, AP)),
     retractall(certain(no_glow, AP)),
     assert_new(certain(Glow, AP)),
     update_gold(Glow).
+update_glow(Glow) :-
+    (Glow = blueLight),
+    agent_position(AP),
+    % Retract in case we collected gold from this position
+    retractall(certain(glow, AP)),
+    retractall(certain(no_glow, AP)),
+    assert_new(certain(Glow, AP)),
+    update_power_up(Glow).
 
 % update_gold/1
 % update_gold(+Glow)
-update_gold(glow) :-
+update_gold(redLight) :-
     agent_position(AP),
     assert_new(certain(gold, AP)),
     log('~t~2|gold position: ~w~n', [AP]).
 update_gold(no_glow) :-
-    agent_position(AP),
     % Retract in case we collected gold from this position
+    agent_position(AP),
     retractall(certain(gold, AP)),
-    assert_new(certain(no_gold, AP)).
+    assert_new(certain(no_gold, AP)),
+    collected(gold, Old),
+    (New is integer(Old)+1),
+    retractall(collected(gold,_)),
+    assert_new(collected(gold, New)),
+    !.
+
+% update_power_up/1
+% update_power_up(+Glow)
+update_power_up(blueLight) :-
+    agent_position(AP),
+    assert_new(certain(power_up, AP)),
+    log('~t~2|powerup position: ~w~n', [AP]).
+update_power_up(no_glow) :-
+    % Retract in case we collected power up from this position
+    agent_position(AP),
+    retractall(certain(power_up, AP)),
+    assert_new(certain(no_power_up, AP)),
+    collected(power_up, Old),
+    (New is integer(Old)+1),
+    retractall(collected(power_up,_)),
+    assert_new(collected(power_up, New)),
+    !.
 
 % update_impact/1
 % update_impact(+Impact)
@@ -937,6 +969,11 @@ ask_goal_KB(kill) :-
 ask_goal_KB(reach(Pos)) :-
     next_position_to_explore(Pos),
     !.
+ask_goal_KB(power_up) :-
+    get_agent_health(Health),
+    (Health =< 50),
+    !.
+
 
 % next_position_to_explore/1
 % next_position_to_explore(-Pos)
@@ -1069,6 +1106,12 @@ next_action(find_enemy, shoot) :-
     log(gave_up_on_enemy),
     exit_find_mode,
     retractall(goal(_)),
+    !.
+next_action(power_up, Action) :-
+    % If agent health below 50%, find a known power up
+    agent_position(AP),
+    certain(blueLight, IP),
+    next_action(reach(IP), Action),
     !.
 
 
