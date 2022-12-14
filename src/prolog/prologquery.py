@@ -121,7 +121,8 @@ class PrologQuery():
     def get_decision(self) -> Action:
         try:
             sensors = self.sense()
-            _, action = self.learn(sensors)
+            goal, action = self.learn(sensors)
+            logging.info(f'Goal: {goal}')
             return action
         except Exception:
             return None

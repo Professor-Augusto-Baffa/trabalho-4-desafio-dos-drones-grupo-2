@@ -33,15 +33,15 @@ import logging
 # </summary>
 class Bot():
 
-    name = "THEBOT" # BOT NAME
-    host = "atari.icad.puc-rio.br" # SERVER
+    name = "THE_BOT" # BOT NAME
+    host = "192.168.0.49" # SERVER
 
     client: typing.Optional[HandleClient] = None
     gameAi: typing.Optional[GameAI] = None
     timer1: typing.Optional[Timer] = None
     
     running = True
-    thread_interval = 0.2 # USE BETWEEN 0.1 and 1 (0.1 real setting, 1 debug settings and makes the bot slower)
+    thread_interval = 0.1 # USE BETWEEN 0.1 and 1 (0.1 real setting, 1 debug settings and makes the bot slower)
 
     playerList: typing.Dict[int, PlayerInfo] = {} #new Dictionary<long, PlayerInfo>
     scoreList: typing.List[ScoreBoard] = [] #List<ScoreBoard>
@@ -281,15 +281,15 @@ class Bot():
     
         if self.client.connected:
 
-            logging.root.debug("Connected")
+            logging.root.info("Connected")
             self.client.sendName(self.name)
-            self.client.sendRGB(255,240,240)  # BOT COLOR
+            self.client.sendRGB(255,120,45)  # BOT COLOR
             self.client.sendRequestGameStatus()
             self.client.sendRequestUserStatus()
             self.client.sendRequestObservation()
 
         else:
-            logging.root.debug("Disconnected")
+            logging.root.info("Disconnected")
 
     # <summary>
     # send a message to other users

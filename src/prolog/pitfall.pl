@@ -181,6 +181,9 @@ world_position(agent, (1, 1)).
 % Print cave for debugging
 
 print_cave :-
+    \+ logging:verbose,
+    !.
+print_cave :-
     minY(MinY), maxY(MaxY),
     between(MinY, MaxY, Y),
     print_cave_line(Y),
