@@ -21,17 +21,21 @@ __email__ = "abaffa@inf.puc-rio.br"
 import random
 from Map.Position import Position
 import typing
+import prolog.prologquery as ai
+import logging
 
 # <summary>
 # Game AI Example
 # </summary>
 class GameAI():
 
+    brain = ai.PrologQuery()
     player = Position()
     state = "ready"
     dir = "north"
     score = 0
     energy = 0
+
 
     # <summary>
     # Refresh player status
@@ -43,8 +47,11 @@ class GameAI():
     # <param name="score">player score</param>
     # <param name="energy">player energy</param>
     def SetStatus(self, x: int, y: int, dir: str, state: str, score: int, energy: int):
-        print(f'Got status x: {x}, y: {y}, dir: {dir}, state:{state}, score: {score}, energy: {energy}')
-    
+        logging.root.debug(f'Got status x: {x}, y: {y}, dir: {dir}, state:{state}, score: {score}, energy: {energy}')
+        self.brain.set_position(x, y)
+        self.brain.set_facing(dir)
+        self.brain.set_energy(energy)
+        self.brain.set_score(score)
         self.player.x = x
         self.player.y = y
         self.dir = dir.lower()
@@ -52,13 +59,71 @@ class GameAI():
         self.state = state
         self.score = score
         self.energy = energy
+    
+    def receiveShotHit(self, agent: str):
+        pass
 
+    def receiveGotHit(self, agent: str):
+        self.brain.set_got_hit()
+
+    # <summary>
+    # Observations received
+    # </summary>
+    # <param name="o">list of observations</param>
+    def GetObservations(self, o: typing.List[str]):
+        logging.root.debug('Got observations: ' + str(o))
+        sensors = ai.Sensors()
+
+        for s in o:
+        
+            if s == "blocked":
+                sensors.impact = True
+            
+            elif s == "steps":
+                sensors.steps = True
+            
+            elif s == "breeze":
+                sensors.breeze = True
+
+            elif s == "flash":
+                sensors.flash = True
+
+            elif s == "blueLight":
+                # power up
+                sensors.potion = True
+
+            elif s == "redLight":
+                # gold
+                sensors.glow = True
+
+            elif s == "greenLight":
+                pass
+
+            elif s == "weakLight":
+                pass
+
+            elif 'enemy' in s:
+                split_index = s.find('#')
+                if split_index > -1:
+                    distance = int(s[split_index + 1 : ])
+                    self.brain.set_detected_enemy(distance)
+        self.brain.set_observations(sensors)
+
+
+    # <summary>
+    # No observations received
+    # </summary>
+    def GetObservationsClean(self):
+        logging.root.debug('Got observations: ' + '[]')
+        sensors = ai.Sensors()
+        self.brain.set_observations(sensors)
 
     # <summary>
     # Get list of observable adjacent positions
     # </summary>
     # <returns>List of observable adjacent positions</returns>
     def GetObservableAdjacentPositions(self) -> typing.List[Position]:
+        # TODO: get adjacent positions from prolog
         ret: typing.List[Position] = []
 
         ret.append(Position(self.player.x - 1, self.player.y))
@@ -67,90 +132,29 @@ class GameAI():
         ret.append(Position(self.player.x, self.player.y + 1))
 
         return ret
-    
+
 
     # <summary>
     # Get next forward position
     # </summary>
     # <returns>next forward position</returns>
     def NextPosition(self) -> typing.Optional[Position]:
-    
+
         ret: typing.Optional[Position] = None
-        
+
         if self.dir == "north":
             ret = Position(self.player.x, self.player.y - 1)
-                
+
         elif self.dir == "east":
                 ret = Position(self.player.x + 1, self.player.y)
-                
+
         elif self.dir == "south":
                 ret = Position(self.player.x, self.player.y + 1)
-                
+
         elif self.dir == "west":
                 ret = Position(self.player.x - 1, self.player.y)
 
         return ret
-    
-
-    # <summary>
-    # Player position
-    # </summary>
-    # <returns>player position</returns>
-    def GetPlayerPosition(self):
-        return self.player
-
-
-    # <summary>
-    # Set player position
-    # </summary>
-    # <param name="x">x position</param>
-    # <param name="y">y position</param>
-    def SetPlayerPosition(self, x, y):
-        self.player.x = x
-        self.player.y = y
-
-    
-
-    # <summary>
-    # Observations received
-    # </summary>
-    # <param name="o">list of observations</param>
-    def GetObservations(self, o: typing.List[str]):
-        print('Got observations: ', o)
-
-        #cmd = "";
-        for s in o:
-        
-            if s == "blocked":
-                pass
-            
-            elif s == "steps":
-                pass
-            
-            elif s == "breeze":
-                pass
-
-            elif s == "flash":
-                pass
-
-            elif s == "blueLight":
-                pass
-
-            elif s == "redLight":
-                pass
-
-            elif s == "greenLight":
-                pass
-
-            elif s == "weakLight":
-                pass
-
-
-    # <summary>
-    # No observations received
-    # </summary>
-    def GetObservationsClean(self):
-        print('Got observations:', '[]')
     
 
     # <summary>
@@ -159,25 +163,33 @@ class GameAI():
     # <returns>command string to new decision</returns>
     def GetDecision(self):
 
-        n = random.randint(0,7)
-        
+        action = self.brain.get_decision()
+        decision = ''
 
-        if n == 0:
-            return "virar_direita"
-        elif n == 1:
-            return "virar_esquerda"
-        elif n == 2:
-            return "andar"
-        elif n == 3:
-            return "atacar"
-        elif n == 4:
-            return "pegar_ouro"
-        elif n == 5:
-            return "pegar_anel"
-        elif n == 6:
-            return "pegar_powerup"
-        elif n == 7:
-            return "andar_re"
+        try:
+            if action.action == 'pick_up':
+                decision = 'pegar'
+            elif action.action == 'move_forward':
+                decision = 'andar'
+            elif action.action == 'move_backwards':
+                decision = 'andar_re'
+            elif action.action == 'turn_clockwise':
+                decision = 'virar_direita'
+            elif action.action == 'turn_anticlockwise':
+                decision = 'virar_esquerda'
+            elif action.action == 'step_out':
+                pass
+            elif action.action == 'shoot':
+                decision = 'atacar'
+        except Exception:
+            pass
 
-        return ""
+        self.brain.print_map()
+        logging.root.debug(f'Got decision: {decision}')
+        return decision
+    
+    def reset(self):
+        self.brain.reset()
+        if logging.root.level >= logging.INFO:
+            self.brain.disable_logging()
 

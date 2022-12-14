@@ -26,13 +26,14 @@ from dto.PlayerInfo import PlayerInfo
 from dto.ScoreBoard import ScoreBoard
 import datetime
 import typing
+import logging
 
 # <summary>
 # Bot Class
 # </summary>
 class Bot():
 
-    name = "BOT_NAME" # BOT NAME
+    name = "THE_BOT" # BOT NAME
     host = "atari.icad.puc-rio.br" # SERVER
 
     client: typing.Optional[HandleClient] = None
@@ -40,7 +41,7 @@ class Bot():
     timer1: typing.Optional[Timer] = None
     
     running = True
-    thread_interval = 1 # USE BETWEEN 0.1 and 1 (0.1 real setting, 1 debug settings and makes the bot slower)
+    thread_interval = 0.25 # USE BETWEEN 0.1 and 1 (0.1 real setting, 1 debug settings and makes the bot slower)
 
     playerList: typing.Dict[int, PlayerInfo] = {} #new Dictionary<long, PlayerInfo>
     scoreList: typing.List[ScoreBoard] = [] #List<ScoreBoard>
@@ -164,7 +165,9 @@ class Bot():
                     self.playerList.clear()
 
                 if self.gameStatus != cmd[1]:
-                    print("New Game Status: " + cmd[1])
+                    logging.root.info("New Game Status: " + cmd[1])
+                    logging.root.info('Resetting AI')
+                    self.gameAi.reset()
 
                 self.gameStatus = cmd[1]
                 self.time = int(cmd[2])
@@ -256,8 +259,7 @@ class Bot():
             elif cmd[0] == "h":
                 if len(cmd) <= 1:
                     return
-                o = ["hit"]
-                self.gameAi.GetObservations(o)
+                self.gameAi.receiveShotHit(cmd[1])
                 self.msg.append("you hit " + cmd[1])                    
                 
             ######################################################        
@@ -265,17 +267,32 @@ class Bot():
             elif cmd[0] == "d":
                 if len(cmd) <= 1:
                     return
-                o = ["damage"]
-                self.gameAi.GetObservations(o)
+                self.gameAi.receiveGotHit(cmd[1])
+                msg = f'Ei, @{cmd[1]}, para de atirar em mim!'
+                self.client.sendSay(msg)
                 self.msg.append(cmd[1] + " hit you")                    
+                
                 
             ######################################################        
 
         except Exception as ex:
             if ex != None:
-                print(ex)
+                logging.root.debug(ex)
             pass
 
+    def SocketStatusChange(self):
+    
+        if self.client.connected:
+
+            logging.root.info("Connected")
+            self.client.sendName(self.name)
+            self.client.sendRGB(255,120,45)  # BOT COLOR
+            self.client.sendRequestGameStatus()
+            self.client.sendRequestUserStatus()
+            self.client.sendRequestObservation()
+
+        else:
+            logging.root.info("Disconnected")
 
     # <summary>
     # send a message to other users
@@ -308,11 +325,7 @@ class Bot():
             self.client.sendForward()
         elif decision ==  "atacar":
             self.client.sendShoot()
-        elif decision ==  "pegar_ouro":
-            self.client.sendGetItem()
-        elif decision == "pegar_anel":
-            self.client.sendGetItem()
-        elif decision == "pegar_powerup":
+        elif decision ==  "pegar":
             self.client.sendGetItem()
         elif decision ==  "andar_re":
             self.client.sendBackward()
@@ -331,10 +344,10 @@ class Bot():
 
         elif self.msgSeconds >= 5000: # 5 SECONDS
 
-            print(self.gameStatus)
-            print(self.GetTime())
-            print("-----------------")
-            print(self.sscoreList)
+            logging.root.info(self.gameStatus)
+            logging.root.info(self.GetTime())
+            logging.root.info("-----------------")
+            logging.root.info(self.sscoreList)
 
             self.client.sendRequestScoreboard()
         
@@ -344,7 +357,7 @@ class Bot():
             if len(self.msg) > 0:
 
                 for s in self.msg:
-                    print(s)
+                    logging.root.info(s)
 
                 self.msg.clear()
 
@@ -354,17 +367,3 @@ class Bot():
             self.timer1 = Timer(self.thread_interval, self.timer1_Tick)
             self.timer1.start()
 
-
-    def SocketStatusChange(self):
-    
-        if self.client.connected:
-
-            print("Connected")
-            self.client.sendName(self.name)
-            #self.client.sendRGB(255,0,0)  # BOT COLOR
-            self.client.sendRequestGameStatus()
-            self.client.sendRequestUserStatus()
-            self.client.sendRequestObservation()
-
-        else:
-            print("Disconnected")
