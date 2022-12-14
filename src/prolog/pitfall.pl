@@ -252,6 +252,10 @@ print_cave_cell(X, Y) :-
     log('\033[48;5;220mO\033[0m'),
     !.
 print_cave_cell(X, Y) :-
+    certain(power_up, (X,Y)),
+    log('\033[48;5;220mO\033[0m'),
+    !.
+print_cave_cell(X, Y) :-
     possible_position(pit, (X,Y), _),
     possible_position(teleporter, (X,Y), _),
     log('+'),
