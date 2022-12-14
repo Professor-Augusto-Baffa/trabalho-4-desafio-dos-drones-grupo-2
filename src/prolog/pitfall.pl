@@ -92,9 +92,9 @@ set_agent_facing(Dir) :-
     assertz(facing(Dir)),
     !.
 
-set_last_observation((Steps, Breeze, Flash, Glow, Impact, Scream)) :-
+set_last_observation((Steps, Breeze, Flash, Glow, Impact, Scream, Potion)) :-
     retractall(last_observation(_)),
-    assertz(last_observation((Steps, Breeze, Flash, Glow, Impact, Scream))),
+    assertz(last_observation((Steps, Breeze, Flash, Glow, Impact, Scream, Potion))),
     !.
 
 set_last_position((X, Y)) :-
@@ -463,9 +463,9 @@ sense_learn_act(Goal, Action) :-
 
 % sense/1
 % sense(-Sensors)
-sense((Steps, Breeze, Flash, Glow, Impact, Scream)) :-
-    last_observation((Steps, Breeze, Flash, Glow, Impact, Scream)),
-    write_sensors((Steps, Breeze, Flash, Glow, Impact, Scream)).
+sense((Steps, Breeze, Flash, Glow, Impact, Scream, Potion)) :-
+    last_observation((Steps, Breeze, Flash, Glow, Impact, Scream, Potion)),
+    write_sensors((Steps, Breeze, Flash, Glow, Impact, Scream, Potion)).
 
 % learn/3
 % learn(+Sensors, -Goal, -Action)
@@ -481,12 +481,10 @@ learn(Sensors, Goal, Action) :-
 % 1. Steps (adjacent cells to damage-inflicting enemies)
 % 2. Breeze (adjacent cells to pits)
 % 3. Flash (adjacent cells to teleporting enemies)
-% 4. Glow (cells where gold/power up is present)
-%     - redLight  -> treasure
-%     - blueLight -> power up
-%     - weakLight -> unknown
+% 4. Glow (cells where gold/power up is present) (RED LIGHT -> treasure)
 % 5. Impact (when walking into a wall)
 % 6. Scream (when an enemy dies)
+% 7. Potion (when agent detects a power up) (BLUE LIGHT -> power up)
 
 write_sensors(Sensors) :-
     agent_position(AP),
@@ -512,7 +510,7 @@ force_update_position(NP) :-
 % update_knowledge/1
 % update_knowledge(+Sensors)
 update_knowledge(Sensors) :-
-    Sensors = (Steps, Breeze, Flash, Glow, Impact, Scream),
+    Sensors = (Steps, Breeze, Flash, Glow, Impact, Scream, Potion),
     clear_transient_flags,
     % Update impact first in case the wall was hit in the previous step
     update_impact(Impact),
@@ -521,6 +519,7 @@ update_knowledge(Sensors) :-
     update_breeze(Breeze),
     update_flash(Flash),
     update_glow(Glow),
+    update_potion(Potion),
     set_visited_cell,
     infer_dangerous_positions,
     infer_safe_positions.
@@ -613,64 +612,61 @@ update_teleporter(flash).
 
 % update_glow/1
 % update_glow(+Glow)
-update_glow(redLight) :-
+update_glow(glow) :-
     agent_position(AP),
     assert_new(certain(gold, AP)),
     fail.
-update_glow(blueLight) :-
-    agent_position(AP),
-    assert_new(certain(power_up, AP)),
-    fail.
 update_glow(Glow) :-
-    (Glow == redLight),
     agent_position(AP),
     % Retract in case we collected gold from this position
     retractall(certain(glow, AP)),
     retractall(certain(no_glow, AP)),
     assert_new(certain(Glow, AP)),
     update_gold(Glow).
-update_glow(Glow) :-
-    (Glow = blueLight),
-    agent_position(AP),
-    % Retract in case we collected gold from this position
-    retractall(certain(glow, AP)),
-    retractall(certain(no_glow, AP)),
-    assert_new(certain(Glow, AP)),
-    update_power_up(Glow).
 
 % update_gold/1
 % update_gold(+Glow)
-update_gold(redLight) :-
+update_gold(glow) :-
     agent_position(AP),
     assert_new(certain(gold, AP)),
     log('~t~2|gold position: ~w~n', [AP]).
 update_gold(no_glow) :-
-    % Retract in case we collected gold from this position
     agent_position(AP),
+    % Retract in case we collected gold from this position
     retractall(certain(gold, AP)),
-    assert_new(certain(no_gold, AP)),
-    collected(gold, Old),
-    (New is integer(Old)+1),
-    retractall(collected(gold,_)),
-    assert_new(collected(gold, New)),
-    !.
+    assert_new(certain(no_gold, AP)).
 
-% update_power_up/1
-% update_power_up(+Glow)
-update_power_up(blueLight) :-
+% update_potion/1
+% update_potion(+Potion)
+update_potion(potion) :-
     agent_position(AP),
     assert_new(certain(power_up, AP)),
-    log('~t~2|powerup position: ~w~n', [AP]).
-update_power_up(no_glow) :-
-    % Retract in case we collected power up from this position
+    fail.
+update_potion(Potion) :-
     agent_position(AP),
+    % Retract in case we collected gold from this position
+    retractall(certain(potion, AP)),
+    retractall(certain(no_potion, AP)),
+    assert_new(certain(Potion, AP)),
+    update_power_up(Potion).
+
+% update_power_up/1
+% update_power_up(+Potion)
+update_power_up(potion) :-
+    agent_position(AP),
+    assert_new(certain(power_up, AP)),
+    log('~t~2|gold position: ~w~n', [AP]).
+update_power_up(no_potion) :-
+    agent_position(AP),
+    % Retract in case we collected gold from this position
     retractall(certain(power_up, AP)),
-    assert_new(certain(no_power_up, AP)),
-    collected(power_up, Old),
-    (New is integer(Old)+1),
-    retractall(collected(power_up,_)),
-    assert_new(collected(power_up, New)),
-    !.
+    assert_new(certain(no_power_up, AP)).
+
+
+% collected(power_up, Old),
+% (New is integer(Old)+1),
+% retractall(collected(power_up,_)),
+% assert_new(collected(power_up, New)),
 
 % update_impact/1
 % update_impact(+Impact)
