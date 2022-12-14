@@ -29,7 +29,7 @@ if __name__ == "__main__":
     print('args:', sys.argv.__repr__())
     if len(sys.argv) > 1:
         LOG_FILE = sys.argv[1]
-        logging.basicConfig(filename=LOG_FILE, level=logging.DEBUG, format=LOG_FORMAT)
+        logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format=LOG_FORMAT)
     else:
         logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
     bot = Bot()
